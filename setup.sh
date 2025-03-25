@@ -42,8 +42,7 @@ setup_hf() {
 
 setup_venv() {
     echo "Setting up venv..."
-
-    python -m venv venv
+    
     source venv/bin/activate
 
     echo "Done setting up venv!"
