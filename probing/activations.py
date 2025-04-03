@@ -15,7 +15,7 @@ def parse_args():
     parser.add_argument('--layers', type=str, default='15,19,23,27,31',
                         help='Comma-separated list of layer numbers to extract activations from')
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size for processing tokens')
-    parser.add_argument('--dataset_path', type=str, default='dataset/cautious.csv',
+    parser.add_argument('--dataset_path', type=str, default='dataset/non_cautious.csv',
                         help='Path to the dataset')
     parser.add_argument('--output_dir', type=str, default='activations/',
                         help='Directory to save the activations')
@@ -119,7 +119,7 @@ def main():
                   for layer in layers}
     }
     
-    with open(os.path.join(args.output_dir, "deepseek_extraction_metadata.pkl"), 'wb') as f:
+    with open(os.path.join(args.output_dir, "deepseek_extraction_cautious_metadata.pkl"), 'wb') as f:
         pickle.dump(metadata, f)
     
     print("Extraction complete.")
