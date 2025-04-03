@@ -406,3 +406,6 @@ env/
 .env/
 ENV/
 virtualenv/
+.env
+
+requirements.in
