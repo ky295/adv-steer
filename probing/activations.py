@@ -6,6 +6,7 @@ import os
 from nnsight import LanguageModel
 import argparse
 import pandas as pd
+import gc
 
 # Example usage
 # CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 15,19,23,27,31 --dataset_path dataset/cautious.csv --output_dir activations/
@@ -26,7 +27,8 @@ def parse_args():
 def main():
     args = parse_args()
     print(f"CUDA available: {torch.cuda.is_available()}")
-    
+    gc.collect()
+    torch.cuda.empty_cache()
     # Parse layers
     layers = [int(l) for l in args.layers.split(',')]
     

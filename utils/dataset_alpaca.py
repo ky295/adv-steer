@@ -50,18 +50,17 @@ def read_prompts(input_csv, prompt_column):
 def process_prompts(model, tokenizer, prompts, max_new_tokens, device):
     """Process prompts through the model and return outputs"""
     results = []
-    prompt = prompt[0:2]
     for prompt in tqdm(prompts):
         chat = [{"role": "user", "content": prompt}]
         # Get tokenized chat format without converting to tensor yet
         raw_tokenized_chat = tokenizer.apply_chat_template(chat, add_generation_prompt=True)
         
-        # Print the decoded tokenized chat for debugging
-        decoded_chat = tokenizer.decode(raw_tokenized_chat)
-        print("="*50)
-        print("DECODED CHAT:")
-        print(decoded_chat)
-        print("="*50)
+        # # Print the decoded tokenized chat for debugging
+        # decoded_chat = tokenizer.decode(raw_tokenized_chat)
+        # print("="*50)
+        # print("DECODED CHAT:")
+        # print(decoded_chat)
+        # print("="*50)
         
         # Now convert to tensor for model input
         tokenized_chat = torch.tensor([raw_tokenized_chat]).to(device)
