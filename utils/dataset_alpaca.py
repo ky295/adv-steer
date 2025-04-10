@@ -6,7 +6,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from tqdm import tqdm
 
 # Example usage:
-# a
+# CUDA_VISIBLE_DEVICES=0 python -m utils.dataset_alpaca --input_csv dataset/alpaca_instructions_100.csv --output_csv dataset/alpaca_reasoning_template.csv
 
 
 def parse_args():
@@ -17,7 +17,6 @@ def parse_args():
     parser.add_argument("--max_new_tokens", type=int, default=1024, help="Maximum number of tokens to generate")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
                        help="Device to run inference on (cuda/cpu)")
-    parser.add_argument("--append_words", type=str, default=". Please begin all of your responses with \"<think>\\n\" followed by your step-by-step reasoning process, and then provide your final answer.", help="Words to append to each prompt")
     return parser.parse_args()
 
 
@@ -51,17 +50,18 @@ def read_prompts(input_csv, prompt_column):
 def process_prompts(model, tokenizer, prompts, max_new_tokens, device):
     """Process prompts through the model and return outputs"""
     results = []
+    prompt = prompt[0:2]
     for prompt in tqdm(prompts):
         chat = [{"role": "user", "content": prompt}]
         # Get tokenized chat format without converting to tensor yet
         raw_tokenized_chat = tokenizer.apply_chat_template(chat, add_generation_prompt=True)
         
-        # # Print the decoded tokenized chat for debugging
-        # decoded_chat = tokenizer.decode(raw_tokenized_chat)
-        # print("="*50)
-        # print("DECODED CHAT:")
-        # print(decoded_chat)
-        # print("="*50)
+        # Print the decoded tokenized chat for debugging
+        decoded_chat = tokenizer.decode(raw_tokenized_chat)
+        print("="*50)
+        print("DECODED CHAT:")
+        print(decoded_chat)
+        print("="*50)
         
         # Now convert to tensor for model input
         tokenized_chat = torch.tensor([raw_tokenized_chat]).to(device)
