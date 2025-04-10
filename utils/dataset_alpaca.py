@@ -6,9 +6,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from tqdm import tqdm
 
 # Example usage:
-# CUDA_VISIBLE_DEVICES=0 python -m utils.dataset_think \
-#   --input_csv dataset/alpaca_instructions_100.csv
-#   --output_csv dataset/alpaca_reasoning_8B.csv
+# a
 
 
 def parse_args():
@@ -17,7 +15,6 @@ def parse_args():
     parser.add_argument("--output_csv", type=str, required=True, help="Path to output CSV file for results")
     parser.add_argument("--prompt_column", type=str, default="instruction", help="Column name containing prompts")
     parser.add_argument("--max_new_tokens", type=int, default=1024, help="Maximum number of tokens to generate")
-    parser.add_argument("--batch_size", type=int, default=1, help="Batch size for processing")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
                        help="Device to run inference on (cuda/cpu)")
     parser.add_argument("--append_words", type=str, default=". Please begin all of your responses with \"<think>\\n\" followed by your step-by-step reasoning process, and then provide your final answer.", help="Words to append to each prompt")
@@ -51,29 +48,35 @@ def read_prompts(input_csv, prompt_column):
     return prompts
 
 
-def process_prompts(model, tokenizer, prompts, max_new_tokens, device, batch_size, append_words):
+def process_prompts(model, tokenizer, prompts, max_new_tokens, device):
     """Process prompts through the model and return outputs"""
     results = []
-    # Append the word to each prompt
-    modified_prompts = [f"{prompt} {append_words}" for prompt in prompts]
-    # Process in batches
-    for i in tqdm(range(0, len(modified_prompts), batch_size), desc="Processing prompts"):
-        batch_prompts = modified_prompts[i:i+batch_size]
-        inputs = tokenizer(batch_prompts, return_tensors="pt", padding=True).to(device)
+    for prompt in tqdm(prompts):
+        chat = [{"role": "user", "content": prompt}]
+        # Get tokenized chat format without converting to tensor yet
+        raw_tokenized_chat = tokenizer.apply_chat_template(chat, add_generation_prompt=True)
+        
+        # # Print the decoded tokenized chat for debugging
+        # decoded_chat = tokenizer.decode(raw_tokenized_chat)
+        # print("="*50)
+        # print("DECODED CHAT:")
+        # print(decoded_chat)
+        # print("="*50)
+        
+        # Now convert to tensor for model input
+        tokenized_chat = torch.tensor([raw_tokenized_chat]).to(device)
         with torch.no_grad():
             output_ids = model.generate(
-                **inputs,
+                tokenized_chat,
                 max_new_tokens=max_new_tokens,
                 do_sample=False, # Use greedy decoding
                 pad_token_id=tokenizer.eos_token_id
             )
-        # Decode the generated outputs
-        for j, output_id in enumerate(output_ids):
-            prompt_tokens_length = inputs.input_ids[j].shape[0]
-            response_ids = output_id[prompt_tokens_length:]
-            response = tokenizer.decode(response_ids, skip_special_tokens=True)
+            
+            # Decode the generated output
+            response = tokenizer.decode(output_ids[0][len(raw_tokenized_chat):], skip_special_tokens=True)
             results.append({
-                "prompt": prompts[i+j],  # Store the original prompt without appended word
+                "prompt": prompt,
                 "response": response
             })
     return results
@@ -97,7 +100,7 @@ def main():
     prompts = read_prompts(args.input_csv, args.prompt_column)
     print(f"Loaded {len(prompts)} prompts from {args.input_csv}")
     # Process prompts through the model
-    results = process_prompts(model, tokenizer, prompts, args.max_new_tokens, args.device, args.batch_size, args.append_words)
+    results = process_prompts(model, tokenizer, prompts, args.max_new_tokens, args.device)
     # Save results to output CSV
     save_results(results, args.output_csv)
 
