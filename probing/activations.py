@@ -9,7 +9,7 @@ import pandas as pd
 import gc
 
 # Example usage
-# CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 15,19,23,27,31 --dataset_path dataset/cautious.csv --output_dir activations/
+# CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 16,17,18,20,21 --dataset_path dataset/cautious.csv --output_dir activations/
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Extract residual stream activations from DeepSeek-R1-Distill-Llama-8B")
