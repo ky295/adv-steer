@@ -5,6 +5,8 @@ import torch
 import einops
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import gc
+import csv
+import pandas as pd
 
 # CUDA_VISIBLE_DEVICES=0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python -m probing.optimised_ortho
 
@@ -21,6 +23,10 @@ def parse_args():
     )
     parser.add_argument("--model_name", type=str, default="deepseek-ai/DeepSeek-R1-Distill-Llama-8B", help="Load the model")
     parser.add_argument("--layer", type=int, default=18, help="Layer to take the activations")
+    parser.add_argument('--input_csv', type=str, default='dataset/cautious.csv',    
+                        help='Path to the input CSV file with prompts')
+    parser.add_argument('--output_csv', type=str, default='dataset/orthogonalized_outputs.csv',
+                        help='Path to save the output CSV file')
     parser.add_argument("--max_new_tokens", type=int, default=1024, help="Maximum number of tokens to generate")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
                        help="Device to run inference on (cuda/cpu)")
@@ -45,6 +51,31 @@ def apply_chat_template(prompt, tokenizer, device):
     op_length = len(raw_tokenized_chat)
     tokenized_chat = torch.tensor([raw_tokenized_chat]).to(device)
     return tokenized_chat, op_length
+
+def read_csv(input_csv):
+    # Read prompts from the CSV file
+    print(f"Reading prompts from {input_csv}...")
+    try:
+        # Read the CSV file using pandas
+        df = pd.read_csv(input_csv)
+        prompts = df['forbidden_prompt'].tolist()
+        print(f"Loaded {len(prompts)} prompts from the CSV file")
+        return prompts
+    except Exception as e:
+        print(f"Error reading input CSV: {e}")
+        return None
+
+def save_csv(results, output_csv):
+    # Save results to CSV
+    print(f"\nSaving results to {args.output_csv}...")
+    try:
+        output_df = pd.DataFrame(results)
+        output_df.to_csv(output_csv, index=False)
+        print(f"Results saved successfully to {output_csv}")
+    except Exception as e:
+        print(f"Error saving output CSV: {e}")
+    
+    return None
 
 def gen_text(model, tokenizer, op_length, tokenized_chat, max_new_tokens):
     with torch.no_grad():
@@ -189,11 +220,11 @@ def main():
     model, tokenizer = load_model(args.model_name, args.device)
     tokenized_chat, op_length = apply_chat_template(prompt, tokenizer, args.device)
     
-    # Generate baseline text
-    print("\nBaseline Output (without direction ablation):")
-    print("-"*80)
-    baseline_text = gen_text(model, tokenizer, op_length, tokenized_chat, args.max_new_tokens)
-    print(baseline_text)
+    # # Generate baseline text
+    # print("\nBaseline Output (without direction ablation):")
+    # print("-"*80)
+    # baseline_text = gen_text(model, tokenizer, op_length, tokenized_chat, args.max_new_tokens)
+    # print(baseline_text)
 
     # Load activations - convert to fp16 for memory efficiency
     print("Loading activations...")
@@ -222,12 +253,28 @@ def main():
     
     # Orthogonalize model weights with respect to the cautious direction
     orthogonalized_model = orthogonalize_model_weights(model, cautious_dir)
+
+    prompts = read_csv(args.input_csv)
+    results = []
     
-    # Generate text with orthogonalized model
-    print("\nOrthogonalized Output:")
-    print("-"*80)
-    orthogonalized_text = gen_text(orthogonalized_model, tokenizer, op_length, tokenized_chat, args.max_new_tokens)
-    print(orthogonalized_text)
+    # Process each prompt
+    for i, prompt in enumerate(prompts):
+        print(f"\nProcessing prompt {i+1}/{len(prompts)}")
+        
+        # Apply chat template
+        tokenized_chat, op_length = apply_chat_template(prompt, tokenizer, args.device)
+        
+        # Generate text with orthogonalized model
+        print("Generating orthogonalized output...")
+        orthogonalized_text = gen_text(orthogonalized_model, tokenizer, op_length, tokenized_chat, args.max_new_tokens)
+        
+        # Save result
+        results.append({"prompt": prompt, "orthogonalized_output": orthogonalized_text})
+        del prompt, orthogonalized_text
+        gc.collect()
+        torch.cuda.empty_cache()
+
+    save_csv(results, args.output_csv)
 
 
 def run():
