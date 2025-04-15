@@ -60,3 +60,9 @@ CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 15,19,23,27,31 --d
 You can now determine which layer is best at separating the transformer residual stream activations for the cautious/non-cautious datasets by computing PCA plots using `probing/visualise_pca.ipynb`.
 
 For the layer determined using PCA, you can train a logistic regression classifier using `probing/logistic_regression.ipynb`.
+
+In `probing/optimised_ortho.py`, we can calculate the caution direction using the difference of means between the activations from layer 18. We can then implement the intervention by directly orthogonalising the weight matrices that write to the residual stream with respect to the caution direction $\widehat{r}$:
+$$W_{\text{out}}' \leftarrow W_{\text{out}} - \widehat{r}\widehat{r}^{\mathsf{T}} W_{\text{out}}$$
+Using this python script, we save a .csv file of the prompt, orthogonalised response pair using prompts from `cautious.csv`.
+
+Using `probing/ortho_results.ipynb`, we can compare StrongREJECT fine-tuned evaluator scores before and after applying the weight orthogonalisation using the caution direction.
