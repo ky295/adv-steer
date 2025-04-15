@@ -67,7 +67,7 @@ def read_csv(input_csv):
 
 def save_csv(results, output_csv):
     # Save results to CSV
-    print(f"\nSaving results to {args.output_csv}...")
+    print(f"\nSaving results to {output_csv}...")
     try:
         output_df = pd.DataFrame(results)
         output_df.to_csv(output_csv, index=False)
