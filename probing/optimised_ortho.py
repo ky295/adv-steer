@@ -244,6 +244,8 @@ def main():
     
     # Calculate difference of means (cautious direction)
     cautious_dir = get_dir(cautious_mean_act, noncautious_mean_act)
+    # Save the tensor to a .pt file
+    # torch.save(cautious_dir, 'probing/cautious_dir.pt')
     print(f"Cautious direction shape: {cautious_dir.shape}")
     
     # Free memory before orthogonalization
@@ -253,6 +255,7 @@ def main():
     
     # Orthogonalize model weights with respect to the cautious direction
     orthogonalized_model = orthogonalize_model_weights(model, cautious_dir)
+    # torch.save(orthogonalized_model, 'probing/orthogonalized_model.pt')
 
     prompts = read_csv(args.input_csv)
     results = []
@@ -269,7 +272,7 @@ def main():
         orthogonalized_text = gen_text(orthogonalized_model, tokenizer, op_length, tokenized_chat, args.max_new_tokens)
         
         # Save result
-        results.append({"prompt": prompt, "orthogonalized_output": orthogonalized_text})
+        results.append({"forbidden_prompt": prompt, "response": orthogonalized_text})
         del prompt, orthogonalized_text
         gc.collect()
         torch.cuda.empty_cache()
