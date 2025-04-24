@@ -409,4 +409,4 @@ virtualenv/
 .env
 
 requirements.in
-archive/.
+archive/
