@@ -12,12 +12,8 @@ Environment configured with `uv`, Python version `3.12`, and currently **both** 
 
 In this folder:
 
-`orthochat.py` for testing orthogonalised model / comparing with base. Usage:
+`orthochat.py` - gradio app for testing orthogonalised model / comparing with base. Usage:
 ```bash
-# Run with both models on the default GPU
 python orthochat.py
-
-# Run with models on different GPUs
-python orthochat.py --base-gpu cuda:2 --ortho-gpu cuda:3
 ```
-![alt text](ortho_chat.png)
+![gradio chat interface](chat_ui.png)
