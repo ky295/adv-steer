@@ -10,10 +10,3 @@ Environment configured with `uv`, Python version `3.12`, and currently **both** 
 
 ---
 
-In this folder:
-
-`orthochat.py` - gradio app for testing orthogonalised model / comparing with base. Usage:
-```bash
-python orthochat.py
-```
-![gradio chat interface](chat_ui.png)
