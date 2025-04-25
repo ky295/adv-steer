@@ -2,8 +2,10 @@ import os
 import torch
 import re
 import gradio as gr
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from concurrent.futures import ThreadPoolExecutor
+from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
+from threading import Thread
+from queue import Queue
+import time
 
 # Environment setup
 os.environ["HF_HOME"] = "/scratch/etheridge/huggingface"
@@ -35,39 +37,137 @@ def apply_chat_template(prompt, tokenizer, device):
     input_ids = tokenizer.apply_chat_template(chat, add_generation_prompt=True, return_tensors="pt").to(device)
     return input_ids, input_ids.shape[-1]
 
-def generate_response(model, tokenizer, input_ids, input_len):
-    attention_mask = torch.ones_like(input_ids)
-    with torch.no_grad():
-        output_ids = model.generate(
-            input_ids,
-            attention_mask=attention_mask,
-            max_new_tokens=MAX_NEW_TOKENS,
-            do_sample=True,
-            temperature=0.6,
-            top_p=0.95,
-            pad_token_id=tokenizer.eos_token_id
-        )
-    raw_output = tokenizer.decode(output_ids[0][input_len:], skip_special_tokens=True)
-    think_pattern = r"(.*?)</think>"
-    thinking_match = re.search(think_pattern, raw_output, re.DOTALL)
-    thinking = thinking_match.group(1).strip() if thinking_match else ""
-    answer = re.sub(think_pattern, "", raw_output, flags=re.DOTALL).strip()
-    return thinking, answer
+def stream_generate(model, tokenizer, input_ids, input_len, thinking_queue, answer_queue, done_event):
+    # Create a TextIteratorStreamer for token-by-token generation
+    streamer = TextIteratorStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
+    
+    # Define generation args
+    generation_kwargs = dict(
+        input_ids=input_ids,
+        attention_mask=torch.ones_like(input_ids),
+        max_new_tokens=MAX_NEW_TOKENS,
+        do_sample=True,
+        temperature=0.6,
+        top_p=0.95,
+        pad_token_id=tokenizer.eos_token_id,
+        streamer=streamer,
+    )
+    
+    # Start generation in a separate thread
+    generation_thread = Thread(target=lambda: model.generate(**generation_kwargs))
+    generation_thread.start()
+    
+    # Process the streamed tokens
+    current_text = ""
+    thinking_completed = False
+    
+    for new_text in streamer:
+        current_text += new_text
+        
+        # Check if we've found the thinking/answer boundary
+        if not thinking_completed:
+            if "</think>" in current_text:
+                parts = current_text.split("</think>", 1)
+                # Send the final thinking text
+                thinking_queue.put(parts[0].strip())
+                thinking_completed = True
+                
+                # Start the answer with any text after the </think> tag
+                if len(parts) > 1 and parts[1]:
+                    answer_queue.put(parts[1].strip())
+            else:
+                # Still in thinking phase
+                thinking_queue.put(current_text.strip())
+        else:
+            # We're in the answer section
+            answer_text = current_text.split("</think>", 1)[1].strip()
+            answer_queue.put(answer_text)
+    
+    # Signal that generation is complete
+    done_event.set()
 
-def compare_models(prompt):
+def compare_models_streaming(prompt):
+    from threading import Event
+    
     base_ids, base_len = apply_chat_template(prompt, base_tokenizer, base_model.device)
     ortho_ids, ortho_len = apply_chat_template(prompt, ortho_tokenizer, ortho_model.device)
-
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        base_future = executor.submit(generate_response, base_model, base_tokenizer, base_ids, base_len)
-        ortho_future = executor.submit(generate_response, ortho_model, ortho_tokenizer, ortho_ids, ortho_len)
-        base_thinking, base_answer = base_future.result()
-        ortho_thinking, ortho_answer = ortho_future.result()
-
-    return (
-        f"{base_thinking}", f"{ortho_thinking}",
-        f"{base_answer}", f"{ortho_answer}"
+    
+    # Create queues and events for streaming
+    base_thinking_queue = Queue()
+    base_answer_queue = Queue()
+    ortho_thinking_queue = Queue()
+    ortho_answer_queue = Queue()
+    
+    base_done = Event()
+    ortho_done = Event()
+    
+    # Start generation threads
+    base_thread = Thread(
+        target=stream_generate,
+        args=(base_model, base_tokenizer, base_ids, base_len, base_thinking_queue, base_answer_queue, base_done)
     )
+    
+    ortho_thread = Thread(
+        target=stream_generate,
+        args=(ortho_model, ortho_tokenizer, ortho_ids, ortho_len, ortho_thinking_queue, ortho_answer_queue, ortho_done)
+    )
+    
+    base_thread.start()
+    ortho_thread.start()
+    
+    # Initialize outputs
+    base_thinking = ""
+    base_answer = ""
+    ortho_thinking = ""
+    ortho_answer = ""
+    
+    # Continue yielding updates until both models are done
+    while True:
+        updated = False
+        
+        # Process base model output
+        while not base_thinking_queue.empty():
+            base_thinking = base_thinking_queue.get()
+            updated = True
+        
+        while not base_answer_queue.empty():
+            base_answer = base_answer_queue.get()
+            updated = True
+        
+        # Process ortho model output
+        while not ortho_thinking_queue.empty():
+            ortho_thinking = ortho_thinking_queue.get()
+            updated = True
+        
+        while not ortho_answer_queue.empty():
+            ortho_answer = ortho_answer_queue.get()
+            updated = True
+        
+        # Yield the current state if there were updates
+        if updated:
+            yield base_thinking, ortho_thinking, base_answer, ortho_answer
+        
+        # Check if both models are done
+        if base_done.is_set() and ortho_done.is_set():
+            # Do one final check of the queues
+            while not base_thinking_queue.empty():
+                base_thinking = base_thinking_queue.get()
+            
+            while not base_answer_queue.empty():
+                base_answer = base_answer_queue.get()
+            
+            while not ortho_thinking_queue.empty():
+                ortho_thinking = ortho_thinking_queue.get()
+            
+            while not ortho_answer_queue.empty():
+                ortho_answer = ortho_answer_queue.get()
+            
+            # Yield the final state
+            yield base_thinking, ortho_thinking, base_answer, ortho_answer
+            break
+        
+        # Add a small delay to avoid overwhelming the UI
+        time.sleep(0.1)
 
 def init_models(base_gpu, ortho_gpu):
     global base_model, base_tokenizer, ortho_model, ortho_tokenizer
@@ -118,7 +218,7 @@ with gr.Blocks() as demo:
     )
 
     submit_btn.click(
-        compare_models,
+        fn=compare_models_streaming,
         inputs=[user_prompt],
         outputs=[base_thinking_output, ortho_thinking_output, base_answer_output, ortho_answer_output]
     )
