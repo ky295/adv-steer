@@ -410,3 +410,5 @@ virtualenv/
 
 requirements.in
 archive/
+
+.gradio
