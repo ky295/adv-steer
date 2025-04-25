@@ -136,8 +136,8 @@ def display_side_by_side(base_response, ortho_response):
     print(divider)
     left_header_text = f"😇 {BASE_MODEL} 😇"
     right_header_text = f"👹 {ORTHO_MODEL} 👹"
-    left_header = f"{BOLD}{YELLOW}{left_header_text}{RESET}"
-    right_header = f"{BOLD}{GREEN}{right_header_text}{RESET}"
+    left_header = f"{BOLD}{GREEN}{left_header_text}{RESET}"
+    right_header = f"{BOLD}{RED}{right_header_text}{RESET}"
     
     left_padding = (col_width - len(left_header_text)) // 2
     right_padding = (col_width - len(right_header_text)) // 2
