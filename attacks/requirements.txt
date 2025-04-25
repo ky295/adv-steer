@@ -1,0 +1,4 @@
+# working version, to merge with top level eventually
+
+torch
+transformers
