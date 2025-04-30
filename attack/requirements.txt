@@ -1,5 +1,26 @@
-# working version, to merge with top level eventually
-
-torch
+torch==2.6.0
 transformers
-gradio
+huggingface_hub
+accelerate
+
+torchvision
+
+# vllm - do we need inference engine for testing??
+numpy
+pandas
+torch
+datasets
+# peft - not finetuning
+# trl
+cutil
+# openai - not using for evals
+# instructor
+pydantic
+tqdm
+# modal # don't need - running locally
+# s3fs - don't need - weights from hf
+wandb
+flash_attn # needs --no-build-isolation? + python 3.11? this will 
+ipywidgets
+ipykernel
+nbformat

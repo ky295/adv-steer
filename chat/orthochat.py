@@ -223,4 +223,11 @@ with gr.Blocks() as demo:
         outputs=[base_thinking_output, ortho_thinking_output, base_answer_output, ortho_answer_output]
     )
 
+    # Add this line to enable Enter key submission
+    user_prompt.submit(
+        fn=compare_models_streaming,
+        inputs=[user_prompt],
+        outputs=[base_thinking_output, ortho_thinking_output, base_answer_output, ortho_answer_output]
+    )
+
 demo.launch(server_port=8000, share=False)

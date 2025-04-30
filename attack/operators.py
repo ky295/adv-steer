@@ -1,0 +1,1 @@
+# operators of GCG style attack. eventually, INSERT, DELETE, SWAP

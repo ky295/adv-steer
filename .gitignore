@@ -407,8 +407,14 @@ env/
 ENV/
 virtualenv/
 .env
+.venvold/
 
 requirements.in
 archive/
 
 .gradio
+
+wandb/
+output/
+
+flash-attention/
