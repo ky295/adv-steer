@@ -9,7 +9,7 @@ import pandas as pd
 import gc
 
 # Example usage
-# CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 16,17,18,20,21 --dataset_path dataset/cautious.csv --output_dir activations/
+# CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 16,17,18,19,27,31 --dataset_path dataset/non_cautious.csv --output_dir activations/
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Extract residual stream activations from DeepSeek-R1-Distill-Llama-8B")
@@ -20,7 +20,7 @@ def parse_args():
                         help='Path to the dataset')
     parser.add_argument('--output_dir', type=str, default='activations/',
                         help='Directory to save the activations')
-    parser.add_argument('--max_tokens', type=int, default=200,
+    parser.add_argument('--max_tokens', type=int, default=150,
                         help='Maximum number of tokens to process per example')
     return parser.parse_args()
 
@@ -51,12 +51,21 @@ def main():
 
     # Process each example
     for idx, row in enumerate(tqdm(df.itertuples())):
-        # Combine prompt and response
-        combined_text = row.forbidden_prompt + " " + row.response
-        
-        # Tokenize with model's tokenizer
-        tokens = model.tokenizer.encode(combined_text)
-        
+        ####### UNCOMMENT BELOW FOR THE BASELINE
+        # chat = [{"role": "user", "content": row.forbidden_prompt}]
+        # tokenized_chat = model.tokenizer.apply_chat_template(chat, add_generation_prompt=True)
+        # tokens = tokenized_chat[-3:]
+
+        ####### UNCOMMENT BELOW FOR 150tok ACTIVATIONS IN PROMPT + COT
+        # chat = [{"role": "user", "content": row.forbidden_prompt}]
+        # tokenized_chat = model.tokenizer.apply_chat_template(chat, add_generation_prompt=True)
+        # combined_text = model.tokenizer.decode(tokenized_chat) + row.response
+        # tokens = model.tokenizer.encode(combined_text)
+        # # Limit token length
+        # tokens = tokens[:args.max_tokens]
+
+        ####### UNCOMMENT BELOW FOR 150tok ACTIVATIONS COT
+        tokens = model.tokenizer.encode(row.response)
         # Limit token length
         tokens = tokens[:args.max_tokens]
         
@@ -107,22 +116,22 @@ def main():
     for layer, activations in activation_matrices.items():
         if activations:
             activation_matrix = np.stack(activations)
-            output_path = os.path.join(args.output_dir, f"deepseek_layer_{layer}_cautious_activations.npy")
+            output_path = os.path.join(args.output_dir, f"deepseek_layer_{layer}_noncautious_activations.npy")
             np.save(output_path, activation_matrix)
             
             print(f"Saved activation matrix for layer {layer} with shape {activation_matrix.shape} to {output_path}")
     
-    # Save metadata
-    metadata = {
-        "model": model_name,
-        "layers": layers,
-        "max_tokens": args.max_tokens,
-        "shapes": {layer: activation_matrices[layer][0].shape if activation_matrices[layer] else None
-                  for layer in layers}
-    }
+    # # Save metadata
+    # metadata = {
+    #     "model": model_name,
+    #     "layers": layers,
+    #     "max_tokens": args.max_tokens,
+    #     "shapes": {layer: activation_matrices[layer][0].shape if activation_matrices[layer] else None
+    #               for layer in layers}
+    # }
     
-    with open(os.path.join(args.output_dir, "deepseek_extraction_cautious_metadata.pkl"), 'wb') as f:
-        pickle.dump(metadata, f)
+    # with open(os.path.join(args.output_dir, "deepseek_extraction_noncautious_metadata.pkl"), 'wb') as f:
+    #     pickle.dump(metadata, f)
     
     print("Extraction complete.")
 
