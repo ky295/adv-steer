@@ -24,7 +24,7 @@ def parse_args():
         required=True,
         help="Path to output CSV file for results"
     )
-    parser.add_argument("--max_new_tokens", type=int, default=1024, help="Maximum number of tokens to generate")
+    parser.add_argument("--max_new_tokens", type=int, default=2048, help="Maximum number of tokens to generate")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
                        help="Device to run inference on (cuda/cpu)")
     return parser.parse_args()
@@ -78,8 +78,10 @@ def process_prompts(model, tokenizer, prompts, max_new_tokens, device):
             output_ids = model.generate(
                 tokenized_chat,
                 max_new_tokens=max_new_tokens,
-                do_sample=False, # Use greedy decoding
-                pad_token_id=tokenizer.eos_token_id
+                do_sample=True, 
+                temperature=0.6,
+                pad_token_id=tokenizer.eos_token_id,
+                attention_mask=torch.ones_like(tokenized_chat)
             )
             
             # Decode the generated output

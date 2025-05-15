@@ -14,7 +14,7 @@ def parse_args():
     parser.add_argument("--input_csv", type=str, required=True, help="Path to input CSV file containing prompts")
     parser.add_argument("--output_csv", type=str, required=True, help="Path to output CSV file for results")
     parser.add_argument("--prompt_column", type=str, default="instruction", help="Column name containing prompts")
-    parser.add_argument("--max_new_tokens", type=int, default=1024, help="Maximum number of tokens to generate")
+    parser.add_argument("--max_new_tokens", type=int, default=2048, help="Maximum number of tokens to generate")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
                        help="Device to run inference on (cuda/cpu)")
     return parser.parse_args()
@@ -55,12 +55,12 @@ def process_prompts(model, tokenizer, prompts, max_new_tokens, device):
         # Get tokenized chat format without converting to tensor yet
         raw_tokenized_chat = tokenizer.apply_chat_template(chat, add_generation_prompt=True)
         
-        # # Print the decoded tokenized chat for debugging
-        # decoded_chat = tokenizer.decode(raw_tokenized_chat)
-        # print("="*50)
-        # print("DECODED CHAT:")
-        # print(decoded_chat)
-        # print("="*50)
+        # Print the decoded tokenized chat for debugging
+        decoded_chat = tokenizer.decode(raw_tokenized_chat)
+        print("="*50)
+        print("DECODED CHAT:")
+        print(decoded_chat)
+        print("="*50)
         
         # Now convert to tensor for model input
         tokenized_chat = torch.tensor([raw_tokenized_chat]).to(device)
@@ -93,6 +93,7 @@ def save_results(results, output_csv):
 
 def main():
     args = parse_args()
+    print(f"CUDA available: {torch.cuda.is_available()}")
     # Load model and tokenizer
     model, tokenizer = load_model(args.device)
     # Read prompts from input CSV
