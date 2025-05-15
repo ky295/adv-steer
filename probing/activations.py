@@ -9,7 +9,7 @@ import pandas as pd
 import gc
 
 # Example usage
-# CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 16,17,18,19,27,31 --dataset_path dataset/non_cautious.csv --output_dir activations/
+# CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 17 --dataset_path dataset/non_cautious.csv --output_dir activations/pr/
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Extract residual stream activations from DeepSeek-R1-Distill-Llama-8B")
@@ -51,23 +51,11 @@ def main():
 
     # Process each example
     for idx, row in enumerate(tqdm(df.itertuples())):
-        ####### UNCOMMENT BELOW FOR THE BASELINE
-        # chat = [{"role": "user", "content": row.forbidden_prompt}]
-        # tokenized_chat = model.tokenizer.apply_chat_template(chat, add_generation_prompt=True)
-        # tokens = tokenized_chat[-3:]
-
-        ####### UNCOMMENT BELOW FOR 150tok ACTIVATIONS IN PROMPT + COT
-        # chat = [{"role": "user", "content": row.forbidden_prompt}]
-        # tokenized_chat = model.tokenizer.apply_chat_template(chat, add_generation_prompt=True)
-        # combined_text = model.tokenizer.decode(tokenized_chat) + row.response
-        # tokens = model.tokenizer.encode(combined_text)
-        # # Limit token length
-        # tokens = tokens[:args.max_tokens]
-
-        ####### UNCOMMENT BELOW FOR 150tok ACTIVATIONS COT
-        tokens = model.tokenizer.encode(row.response)
-        # Limit token length
-        tokens = tokens[:args.max_tokens]
+        chat = [{"role": "user", "content": row.forbidden_prompt}]
+        # tokens = model.tokenizer.apply_chat_template(chat, add_generation_prompt=True)
+        tokenized_chat = model.tokenizer.apply_chat_template(chat, add_generation_prompt=True)
+        combined_text = model.tokenizer.decode(tokenized_chat) + row.response
+        tokens = model.tokenizer.encode(combined_text)
         
         # Initialize dict to collect activations for this example across all layers
         example_layer_activations = {layer: [] for layer in layers}
@@ -80,29 +68,34 @@ def main():
             # Convert batch tokens to input text
             input_text = model.tokenizer.decode(batch_tokens)
             # Run forward pass with NNsight
-            with model.trace(input_text) as tracer:
-                # Save activations for each layer
-                for layer in layers:
-                    # DeepSeek-R1-Distill-Llama-8B uses input_layernorm.input for residual stream
-                    # The structure is model.layers[layer_num].input_layernorm.input
-                    activation = model.model.layers[layer].input_layernorm.input.save()
-                    example_layer_activations[layer].append(activation)
+            with torch.no_grad():  # Disable gradient tracking to save memory
+                with model.trace(input_text) as tracer:
+                    # Save activations for each layer
+                    for layer in layers:
+                        # DeepSeek-R1-Distill-Llama-8B uses input_layernorm.input for residual stream
+                        # The structure is model.layers[layer_num].input_layernorm.input
+                        activation = model.model.layers[layer].input_layernorm.input.save()
+                        example_layer_activations[layer].append(activation)
+
+            # Clear CUDA cache after each batch
+            torch.cuda.empty_cache()
         
         # Compute means and add to matrices
         for layer in layers:
-            if example_layer_activations[layer]:
-                # Concatenate batches
-                try:
-                    # For newer versions of PyTorch/NNsight that return tensors directly
-                    layer_activations = torch.cat(example_layer_activations[layer], dim=1)
-                except:
-                    # Fallback for versions that might wrap tensors in tuples/lists
-                    layer_activations = torch.cat([act[0] if isinstance(act, (list, tuple)) else act 
-                                                  for act in example_layer_activations[layer]], dim=1)
-                
-                # Compute mean across tokens (dimension 1)
-                mean_activation = torch.mean(layer_activations, dim=1).detach().cpu().numpy()
-                activation_matrices[layer].append(mean_activation.squeeze())
+            layer_activations = torch.cat(example_layer_activations[layer], dim=1)
+            # layer_activations.shape = torch.Size([1, 17, 4096])
+            # last_3_tokens = torch.Size([1,3,4096])
+            # last_3_tokens = layer_activations[:, -3:, :]
+            # # Compute mean across tokens (dimension 1)
+            # mean_activation = torch.mean(last_3_tokens, dim=1).detach().cpu().numpy()
+
+            first_150_tokens = layer_activations[:, : 150, :]
+            mean_activation = torch.mean(first_150_tokens, dim=1).detach().cpu().numpy()
+
+            activation_matrices[layer].append(mean_activation.squeeze())
+        
+        # Clear CUDA cache after each batch
+        torch.cuda.empty_cache()
         
         # Print progress
         if (idx + 1) % 10 == 0:
