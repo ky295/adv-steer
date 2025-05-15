@@ -1,5 +1,32 @@
 #!/bin/bash
 
+# 1) Setup GitHub credentials
+echo "Setting up GitHub..."
+read -p "Would you like to set up GitHub credentials? (y/n) " github_setup
+if [[ $github_setup =~ ^[Yy]$ ]]; then
+    cd "$(dirname "$0")"
+    if [ -f "./github_setup.sh" ]; then
+        chmod +x ./github_setup.sh
+        ./github_setup.sh
+    else
+        echo "Error: github_setup.sh not found in $(dirname "$0") directory"
+        exit 1
+    fi
+fi
+
+# 2) Setup linux dependencies
+echo "Installing Linux dependencies..."
+apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    sudo \
+    less \
+    nano \
+    htop \
+    ncdu \
+    nvtop \
+    lsof \
+    zsh \
+    tmux
+
 REQUIRED_PYTHON="3.10"
 
 version_ge() {
