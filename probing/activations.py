@@ -9,7 +9,7 @@ import pandas as pd
 import gc
 
 # Example usage
-# CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 17 --dataset_path dataset/non_cautious.csv --output_dir activations/pr/
+# CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 3,7,11,15,17,19,23,27,31 --dataset_path dataset/non_cautious.csv --output_dir activations/cot150/ --cot
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Extract residual stream activations from DeepSeek-R1-Distill-Llama-8B")
@@ -22,6 +22,7 @@ def parse_args():
                         help='Directory to save the activations')
     parser.add_argument('--max_tokens', type=int, default=150,
                         help='Maximum number of tokens to process per example')
+    parser.add_argument('--cot', type = bool, help="CoT tokens or 3 tokens at the end of prompt")
     return parser.parse_args()
 
 def main():
@@ -53,18 +54,31 @@ def main():
     for idx, row in enumerate(tqdm(df.itertuples())):
         chat = [{"role": "user", "content": row.forbidden_prompt}]
         # tokens = model.tokenizer.apply_chat_template(chat, add_generation_prompt=True)
-        tokenized_chat = model.tokenizer.apply_chat_template(chat, add_generation_prompt=True)
-        combined_text = model.tokenizer.decode(tokenized_chat) + row.response
-        tokens = model.tokenizer.encode(combined_text)
-        
+        prompt_tokens = model.tokenizer.apply_chat_template(chat, add_generation_prompt=True)
+        # Mark where CoT begins (exact boundary)
+        cot_start_idx = len(prompt_tokens)
+        if args.cot:
+            # Encode the response separately
+            response_tokens = model.tokenizer.encode(row.response, add_special_tokens=False)
+            # Combine tokens (this preserves the exact boundary)
+            tokens = prompt_tokens + response_tokens
+            end_idx= cot_start_idx + args.max_tokens
+            # Mark where CoT begins (exact boundary)
+            start_pos = cot_start_idx
+        else:
+            tokens = prompt_tokens
+            end_idx = cot_start_idx
+            start_pos = cot_start_idx - 3
+
         # Initialize dict to collect activations for this example across all layers
         example_layer_activations = {layer: [] for layer in layers}
-        
+        token_positions = []
+
         # Process in batches to avoid memory issues
-        for start_idx in range(0, len(tokens), args.batch_size):
-            end_idx = min(start_idx + args.batch_size, len(tokens))
-            batch_tokens = tokens[start_idx:end_idx]
-            
+        for start_idx in range(0, end_idx, args.batch_size):
+            batch_idx = min(start_idx + args.batch_size, end_idx)
+            batch_tokens = tokens[start_idx:batch_idx]
+            token_positions.append((start_idx, batch_idx))
             # Convert batch tokens to input text
             input_text = model.tokenizer.decode(batch_tokens)
             # Run forward pass with NNsight
@@ -83,27 +97,16 @@ def main():
         # Compute means and add to matrices
         for layer in layers:
             layer_activations = torch.cat(example_layer_activations[layer], dim=1)
-            # layer_activations.shape = torch.Size([1, 17, 4096])
-            # last_3_tokens = torch.Size([1,3,4096])
-            # last_3_tokens = layer_activations[:, -3:, :]
-            # # Compute mean across tokens (dimension 1)
-            # mean_activation = torch.mean(last_3_tokens, dim=1).detach().cpu().numpy()
-
-            first_150_tokens = layer_activations[:, : 150, :]
-            mean_activation = torch.mean(first_150_tokens, dim=1).detach().cpu().numpy()
+            # Get the last 3 tokens of the sequence OR args.max_tokens number of tokens in the CoT
+            select_tokens = layer_activations[:, start_pos: end_idx, :]
+            # Compute mean across tokens (dimension 1)
+            mean_activation = torch.mean(select_tokens, dim=1).detach().cpu().numpy()
 
             activation_matrices[layer].append(mean_activation.squeeze())
         
         # Clear CUDA cache after each batch
         torch.cuda.empty_cache()
         
-        # Print progress
-        if (idx + 1) % 10 == 0:
-            
-            # Print some stats about the first layer as a sanity check
-            if layers[0] in activation_matrices and activation_matrices[layers[0]]:
-                first_layer_shape = activation_matrices[layers[0]][0].shape
-                print(f"First layer activation shape for first example: {first_layer_shape}")
     
     # Save activation matrices for each layer
     for layer, activations in activation_matrices.items():
@@ -113,18 +116,6 @@ def main():
             np.save(output_path, activation_matrix)
             
             print(f"Saved activation matrix for layer {layer} with shape {activation_matrix.shape} to {output_path}")
-    
-    # # Save metadata
-    # metadata = {
-    #     "model": model_name,
-    #     "layers": layers,
-    #     "max_tokens": args.max_tokens,
-    #     "shapes": {layer: activation_matrices[layer][0].shape if activation_matrices[layer] else None
-    #               for layer in layers}
-    # }
-    
-    # with open(os.path.join(args.output_dir, "deepseek_extraction_noncautious_metadata.pkl"), 'wb') as f:
-    #     pickle.dump(metadata, f)
     
     print("Extraction complete.")
 
