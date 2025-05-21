@@ -9,7 +9,7 @@ import pandas as pd
 import gc
 
 # Example usage
-# CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 3,7,11,15,17,19,23,27,31 --dataset_path dataset/non_cautious.csv --output_dir activations/cot150/ --cot
+# CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 3,7,11,15,17,19,23,27,31 --dataset_path dataset/cautious.csv --output_dir activations/baseline/
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Extract residual stream activations from DeepSeek-R1-Distill-Llama-8B")
@@ -22,7 +22,7 @@ def parse_args():
                         help='Directory to save the activations')
     parser.add_argument('--max_tokens', type=int, default=150,
                         help='Maximum number of tokens to process per example')
-    parser.add_argument('--cot', type = bool, help="CoT tokens or 3 tokens at the end of prompt")
+    parser.add_argument('--cot', type = bool, default=False, help="CoT tokens or 3 tokens at the end of prompt")
     return parser.parse_args()
 
 def main():
@@ -49,6 +49,7 @@ def main():
 
     # Initialize dictionary to store activation matrices for each layer
     activation_matrices = {layer: [] for layer in layers}
+    print(args.cot)
 
     # Process each example
     for idx, row in enumerate(tqdm(df.itertuples())):
@@ -57,7 +58,7 @@ def main():
         prompt_tokens = model.tokenizer.apply_chat_template(chat, add_generation_prompt=True)
         # Mark where CoT begins (exact boundary)
         cot_start_idx = len(prompt_tokens)
-        if args.cot:
+        if args.cot == True:
             # Encode the response separately
             response_tokens = model.tokenizer.encode(row.response, add_special_tokens=False)
             # Combine tokens (this preserves the exact boundary)
@@ -99,6 +100,7 @@ def main():
             layer_activations = torch.cat(example_layer_activations[layer], dim=1)
             # Get the last 3 tokens of the sequence OR args.max_tokens number of tokens in the CoT
             select_tokens = layer_activations[:, start_pos: end_idx, :]
+            print(select_tokens.shape)
             # Compute mean across tokens (dimension 1)
             mean_activation = torch.mean(select_tokens, dim=1).detach().cpu().numpy()
 
@@ -112,7 +114,7 @@ def main():
     for layer, activations in activation_matrices.items():
         if activations:
             activation_matrix = np.stack(activations)
-            output_path = os.path.join(args.output_dir, f"deepseek_layer_{layer}_noncautious_activations.npy")
+            output_path = os.path.join(args.output_dir, f"deepseek_layer_{layer}_cautious_activations.npy")
             np.save(output_path, activation_matrix)
             
             print(f"Saved activation matrix for layer {layer} with shape {activation_matrix.shape} to {output_path}")
