@@ -9,7 +9,7 @@ import pandas as pd
 import gc
 
 # Example usage
-# CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 3,7,11,15,17,19,23,27,31 --dataset_path dataset/cautious.csv --output_dir activations/baseline/
+# CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 --dataset_path dataset/cautious.csv --output_dir activations/baseline/ 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Extract residual stream activations from DeepSeek-R1-Distill-Llama-8B")
@@ -22,7 +22,7 @@ def parse_args():
                         help='Directory to save the activations')
     parser.add_argument('--max_tokens', type=int, default=150,
                         help='Maximum number of tokens to process per example')
-    parser.add_argument('--cot', type = bool, default=False, help="CoT tokens or 3 tokens at the end of prompt")
+    parser.add_argument('--cot', type=bool, default=False, help="CoT tokens or 3 tokens at the end of prompt")
     return parser.parse_args()
 
 def main():
@@ -49,66 +49,56 @@ def main():
 
     # Initialize dictionary to store activation matrices for each layer
     activation_matrices = {layer: [] for layer in layers}
-    print(args.cot)
+    print(f"CoT mode: {args.cot}")
 
     # Process each example
     for idx, row in enumerate(tqdm(df.itertuples())):
         chat = [{"role": "user", "content": row.forbidden_prompt}]
-        # tokens = model.tokenizer.apply_chat_template(chat, add_generation_prompt=True)
         prompt_tokens = model.tokenizer.apply_chat_template(chat, add_generation_prompt=True)
-        # Mark where CoT begins (exact boundary)
-        cot_start_idx = len(prompt_tokens)
-        if args.cot == True:
+        
+        if args.cot:
             # Encode the response separately
             response_tokens = model.tokenizer.encode(row.response, add_special_tokens=False)
-            # Combine tokens (this preserves the exact boundary)
-            tokens = prompt_tokens + response_tokens
-            end_idx= cot_start_idx + args.max_tokens
-            # Mark where CoT begins (exact boundary)
-            start_pos = cot_start_idx
+            # We want the first 150 tokens of the CoT (response)
+            tokens_to_process = prompt_tokens + response_tokens[:args.max_tokens]
+            target_start = len(prompt_tokens)  # Start of CoT
+            target_end = len(tokens_to_process)  # End of our selection
         else:
-            tokens = prompt_tokens
-            end_idx = cot_start_idx
-            start_pos = cot_start_idx - 3
+            tokens_to_process = prompt_tokens
+            target_start = max(0, len(prompt_tokens) - 3)  # Last 3 tokens of prompt
+            target_end = len(prompt_tokens)
 
+        # Process the entire sequence at once to avoid batch alignment issues
+        input_text = model.tokenizer.decode(tokens_to_process)
+        
         # Initialize dict to collect activations for this example across all layers
         example_layer_activations = {layer: [] for layer in layers}
-        token_positions = []
-
-        # Process in batches to avoid memory issues
-        for start_idx in range(0, end_idx, args.batch_size):
-            batch_idx = min(start_idx + args.batch_size, end_idx)
-            batch_tokens = tokens[start_idx:batch_idx]
-            token_positions.append((start_idx, batch_idx))
-            # Convert batch tokens to input text
-            input_text = model.tokenizer.decode(batch_tokens)
-            # Run forward pass with NNsight
-            with torch.no_grad():  # Disable gradient tracking to save memory
-                with model.trace(input_text) as tracer:
-                    # Save activations for each layer
-                    for layer in layers:
-                        # DeepSeek-R1-Distill-Llama-8B uses input_layernorm.input for residual stream
-                        # The structure is model.layers[layer_num].input_layernorm.input
-                        activation = model.model.layers[layer].input_layernorm.input.save()
-                        example_layer_activations[layer].append(activation)
-
-            # Clear CUDA cache after each batch
-            torch.cuda.empty_cache()
+        
+        with torch.no_grad():
+            with model.trace(input_text) as tracer:
+                for layer in layers:
+                    activation = model.model.layers[layer].input_layernorm.input.save()
+                    example_layer_activations[layer].append(activation)
         
         # Compute means and add to matrices
         for layer in layers:
-            layer_activations = torch.cat(example_layer_activations[layer], dim=1)
-            # Get the last 3 tokens of the sequence OR args.max_tokens number of tokens in the CoT
-            select_tokens = layer_activations[:, start_pos: end_idx, :]
-            print(select_tokens.shape)
+            if len(example_layer_activations[layer]) == 1:
+                # Single chunk - extract the target tokens directly
+                layer_activations = example_layer_activations[layer][0]
+                select_tokens = layer_activations[:, target_start:target_end, :]
+            else:
+                # Multiple chunks - concatenate and then extract
+                layer_activations = torch.cat(example_layer_activations[layer], dim=1)
+                select_tokens = layer_activations[:, target_start:target_end, :]
+            
+            print(f"Selected tokens shape: {select_tokens.shape}")
+            
             # Compute mean across tokens (dimension 1)
             mean_activation = torch.mean(select_tokens, dim=1).detach().cpu().numpy()
-
             activation_matrices[layer].append(mean_activation.squeeze())
         
-        # Clear CUDA cache after each batch
+        # Clear CUDA cache
         torch.cuda.empty_cache()
-        
     
     # Save activation matrices for each layer
     for layer, activations in activation_matrices.items():
