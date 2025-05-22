@@ -10,7 +10,7 @@ import gc
 import csv
 import pandas as pd
 
-# CUDA_VISIBLE_DEVICES=0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python -m probing.dir_ablation
+# CUDA_VISIBLE_DEVICES=0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python -m probing.activation_addition
 
 
 def parse_args():
@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument(
         "--activations_dir",
         type=str,
-        default="activations/",
+        default="activations/cot150/",
         help="Path to activations directory" 
     )
     parser.add_argument("--model_name", type=str, default="deepseek-ai/DeepSeek-R1-Distill-Llama-8B", help="Load the model")
@@ -54,6 +54,8 @@ def read_csv(input_csv):
     try:
         # Read the CSV file using pandas
         df = pd.read_csv(input_csv)
+        # For debugging purposes, only process the first 5 examples
+        df = df.head(5)
         prompts = df['forbidden_prompt'].tolist()
         print(f"Loaded {len(prompts)} prompts from the CSV file")
         return prompts
@@ -98,7 +100,6 @@ def get_mean_act(activations_np):
 
 def get_dir(mean_act1, mean_act2):
     dir = mean_act1 - mean_act2
-    dir = dir / dir.norm()
     return dir
 
 # Directional ablation hook function
@@ -132,16 +133,8 @@ def direction_ablation_hook(
     else:
         output_reshaped = output
     
-    # Calculate projection: (a · r) * r
-    # einsum for batch projection calculation
-    projection = einops.einsum(
-        output_reshaped, 
-        direction, 
-        '... d_model, d_model -> ...'
-    ).unsqueeze(-1) * direction.unsqueeze(0)
-    
-    # Subtract the projection from the output
-    output_ablated = output_reshaped + projection
+    # Add the projection from the output
+    output_ablated = output_reshaped + (0.5 * direction)
     
     # Reshape back to original shape if needed
     if len(original_shape) > 2:
@@ -206,34 +199,33 @@ def main():
     gc.collect()
     torch.cuda.empty_cache()
 
-    # # Load activations
-    # print("Loading activations...")
-    # activations_cautious = load_activations(os.path.join(args.activations_dir, f"deepseek_layer_{args.layer}_cautious_activations.npy"))
-    # cautious_mean_act = get_mean_act(activations_cautious).to(dtype=torch.float16, device=args.device)
-    # # Free memory
-    # del activations_cautious
-    # gc.collect()
-    # torch.cuda.empty_cache()
+    # Load activations
+    print("Loading activations...")
+    activations_cautious = load_activations(os.path.join(args.activations_dir, f"deepseek_layer_{args.layer}_cautious_activations.npy"))
+    cautious_mean_act = get_mean_act(activations_cautious).to(dtype=torch.float16, device=args.device)
+    # Free memory
+    del activations_cautious
+    gc.collect()
+    torch.cuda.empty_cache()
     
-    # activations_noncautious = load_activations(os.path.join(args.activations_dir, f"deepseek_layer_{args.layer}_noncautious_activations.npy"))
-    # noncautious_mean_act = get_mean_act(activations_noncautious).to(dtype=torch.float16, device=args.device)
-    # # Free memory
-    # del activations_noncautious
-    # gc.collect()
-    # torch.cuda.empty_cache()
+    activations_noncautious = load_activations(os.path.join(args.activations_dir, f"deepseek_layer_{args.layer}_noncautious_activations.npy"))
+    noncautious_mean_act = get_mean_act(activations_noncautious).to(dtype=torch.float16, device=args.device)
+    # Free memory
+    del activations_noncautious
+    gc.collect()
+    torch.cuda.empty_cache()
     
-    # # Calculate difference of means (cautious direction)
-    # cautious_dir = get_dir(cautious_mean_act, noncautious_mean_act)
-    # print(f"Cautious direction shape: {cautious_dir.shape}")
+    # Calculate difference of means (cautious direction)
+    cautious_dir = get_dir(cautious_mean_act, noncautious_mean_act)
+    print(f"Cautious direction shape: {cautious_dir.shape}")
     
-    # # Free memory before generating ablated text
-    # del cautious_mean_act, noncautious_mean_act
-    # gc.collect()
-    # torch.cuda.empty_cache()
+    # Free memory before generating ablated text
+    del cautious_mean_act, noncautious_mean_act
+    gc.collect()
+    torch.cuda.empty_cache()
 
-    '''Load tensor directly from cautious_dir.pt'''
-
-    cautious_dir = torch.load('probing/cautious_dir.pt')
+    # # Load tensor directly from cautious_dir.pt
+    # cautious_dir = torch.load('probing/cautious_dir.pt')
     
     # Load model and tokenizer
     model, tokenizer = load_model(args.model_name, args.device)
