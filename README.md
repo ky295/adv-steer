@@ -50,7 +50,7 @@ We then curate caution and non-caution datasets. The non-caution dataset compris
 
 ##  Activations
 
-Now that we have `dataset/cautious.csv` and `dataset/non_cautious.csv`, we can now run `probing/activations.py` in order to cache activations for a sweep of layers. This script takes the first 200 tokens in the prompt-response example, computes activations at each token position, and then takes the average. This is repeated for each row in the dataset, for a sweep of layers.
+Now that we have `dataset/cautious.csv` and `dataset/non_cautious.csv`, we can now run `probing/activations.py` in order to cache activations for a sweep of layers. This script takes the first 150 tokens (staying within the CoT) in the prompt-response example, computes activations at each token position, and then takes the average. This is repeated for each row in the dataset, for a sweep of layers.
 
 ```
 cd adv-steer
@@ -61,10 +61,23 @@ You can now determine which layer is best at separating the transformer residual
 
 For the layer determined using PCA, you can train a logistic regression classifier using `probing/logistic_regression.ipynb`.
 
-In `probing/optimised_ortho.py`, we can calculate the caution direction using the difference of means between the activations from layer 18. We can then implement the intervention by directly orthogonalising the weight matrices that write to the residual stream with respect to the caution direction $\widehat{r}$:
+In `probing/create_ortho_model.py`, we can calculate the caution direction using the difference of means between the activations from layer 18. We can then implement the intervention by directly orthogonalising the weight matrices that write to the residual stream with respect to the caution direction $\widehat{r}$:
 
 $$W_{\text{out}}' \leftarrow W_{\text{out}} - \widehat{r}\widehat{r}^{\mathsf{T}} W_{\text{out}}$$
 
-Using this python script, we save a .csv file of the prompt, orthogonalised response pair using prompts from `cautious.csv`.
+We can then use the `probing/ortho_csv_generation.py` script to save a .csv file of the prompt, orthogonalised response pair using prompts from `cautious.csv`.
 
 Using `probing/ortho_results.ipynb`, we can compare StrongREJECT fine-tuned evaluator scores before and after applying the weight orthogonalisation using the caution direction.
+
+## Dependencies
+
+The usual stuff:
+
+```
+pip install -r requirements.txt
+```
+
+Also, required
+```
+pip install git+https://github.com/dsbowen/strong_reject.git@main 
+```
