@@ -10,13 +10,13 @@ import gc
 import csv
 import pandas as pd
 
-# CUDA_VISIBLE_DEVICES=0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python -m probing.activation_addition
+# CUDA_VISIBLE_DEVICES=0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python -m probing.activation_addition --alpha 1.5 --layer 17
 
 
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Process prompts with directional ablation in DeepSeek model"
+        description="Process prompts with activation addition in DeepSeek model"
     )
     parser.add_argument(
         "--activations_dir",
@@ -25,14 +25,15 @@ def parse_args():
         help="Path to activations directory" 
     )
     parser.add_argument("--model_name", type=str, default="deepseek-ai/DeepSeek-R1-Distill-Llama-8B", help="Load the model")
-    parser.add_argument("--layer", type=int, default=18, help="Layer to take the activations")
+    parser.add_argument("--layer", type=int, default=17, help="Layer to apply activation addition")
     parser.add_argument('--input_csv', type=str, default='dataset/non_cautious.csv',    
                         help='Path to the input CSV file with prompts')
-    parser.add_argument('--output_csv', type=str, default='dataset/ablated_outputs.csv',
+    parser.add_argument('--output_csv', type=str, default='dataset/activation_addition_outputs.csv',
                         help='Path to save the output CSV file')
     parser.add_argument("--max_new_tokens", type=int, default=2048, help="Maximum number of tokens to generate")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
                        help="Device to run inference on (cuda/cpu)")
+    parser.add_argument("--alpha", type=float, default=1.0, help="Scaling factor for activation addition")
     return parser.parse_args()
 
 def load_model(model_name, device):
@@ -55,7 +56,6 @@ def read_csv(input_csv):
         # Read the CSV file using pandas
         df = pd.read_csv(input_csv)
         # For debugging purposes, only process the first 5 examples
-        df = df.head(5)
         prompts = df['forbidden_prompt'].tolist()
         print(f"Loaded {len(prompts)} prompts from the CSV file")
         return prompts
@@ -102,89 +102,87 @@ def get_dir(mean_act1, mean_act2):
     dir = mean_act1 - mean_act2
     return dir
 
-# Directional ablation hook function
-def direction_ablation_hook(
+# Activation addition hook function
+def activation_addition_hook(
     module: torch.nn.Module,
     input: List[torch.Tensor],
-    output: torch.Tensor,
-    direction: torch.Tensor
-) -> torch.Tensor:
+    output,
+    direction: torch.Tensor,
+    alpha: float = 1.0
+):
     """
-    Hook function that ablates a specific direction from activations.
+    Hook function that adds a direction to activations for steering.
     
     Args:
         module: The module whose forward pass is being hooked
         input: Inputs to the module
-        output: Output of the module
-        direction: The direction to ablate (must be a unit vector)
+        output: Output of the module (can be tuple or tensor)
+        direction: The direction to add (cautious direction vector)
+        alpha: Scaling factor for the addition
     
     Returns:
-        Modified output with the direction ablated
+        Modified output with the direction added
     """
-    # Calculate the projection onto the direction
-    # Ensure both tensors are on the same device
-    direction = direction.to(output.device)
+    # Handle the case where output is a tuple (common for transformer layers)
+    # The first element is typically the hidden states
+    hidden_states = output[0]
+    other_outputs = output[1:] if len(output) > 1 else ()
     
-    # Reshape output for easier computation if needed
-    original_shape = output.shape
-    if len(original_shape) > 2:
-        # Reshape to [batch_size * seq_len, hidden_dim]
-        output_reshaped = output.view(-1, output.size(-1))
-    else:
-        output_reshaped = output
+    # Ensure direction is on the same device as hidden_states
+    direction = direction.to(hidden_states.device)
     
-    # Add the projection from the output
-    output_ablated = output_reshaped + (0.5 * direction)
-    
-    # Reshape back to original shape if needed
-    if len(original_shape) > 2:
-        output_ablated = output_ablated.view(original_shape)
-    
-    return output_ablated
+    # Get original shape for reshaping back later
+    original_shape = hidden_states.shape
+    print("len(original_shape)", len(original_shape))
+    # For transformer models, hidden_states shape is typically [batch_size, seq_len, hidden_dim]
 
-def register_ablation_hooks(model, direction, layer_names=None):
+    batch_size, seq_len, hidden_dim = original_shape
+        
+    # Add the direction to all token positions
+    # Direction should be broadcast across batch and sequence dimensions
+    direction_expanded = direction.unsqueeze(0).unsqueeze(0)  # [1, 1, hidden_dim]
+    direction_expanded = direction_expanded.expand(batch_size, seq_len, -1)  # [batch_size, seq_len, hidden_dim]
+        
+    # Apply activation addition: x' = x + α * c
+    hidden_states_modified = hidden_states + alpha * direction_expanded
+        
+    # Return the modified output in the same format as the input
+    return (hidden_states_modified,) + other_outputs
+
+def register_activation_addition_hooks(model, direction, target_layer, alpha=1.0):
     """
-    Register hooks for directional ablation on model layers.
+    Register hooks for activation addition on a specific layer.
     
     Args:
         model: The model to add hooks to
-        direction: The direction to ablate
-        layer_names: Optional list of specific layer names to hook 
-                    (default: hooks all self-attention outputs and MLP outputs)
+        direction: The direction to add (cautious direction)
+        target_layer: The layer number to apply activation addition to
+        alpha: Scaling factor for activation addition
     
     Returns:
         handles: List of hook handles for removal later
     """
     handles = []
-    hook_fn = functools.partial(direction_ablation_hook, direction=direction)
+    hook_fn = functools.partial(activation_addition_hook, direction=direction, alpha=alpha)
     
-    # Default behavior: hook all self-attention output projections and MLP output projections
-    if layer_names is None:
-        # For each transformer layer
-        for i, layer in enumerate(model.model.layers):
-            # Hook self-attention output projection
-            handles.append(layer.self_attn.o_proj.register_forward_hook(hook_fn))
-            
-            # Hook MLP output projection
-            handles.append(layer.mlp.down_proj.register_forward_hook(hook_fn))
-    else:
-        # Hook specific named modules
-        for name in layer_names:
-            module = model.get_submodule(name)
-            handles.append(module.register_forward_hook(hook_fn))
+    # Hook the residual stream at the specified layer
+    # This targets the output of the entire transformer block
+    target_module = model.model.layers[target_layer]
+    handles.append(target_module.register_forward_hook(hook_fn))
     
-    print(f"Registered {len(handles)} ablation hooks")
+    print(f"Registered activation addition hook on layer {target_layer} with alpha={alpha}")
     return handles
 
 def gen_text(model, tokenizer, op_length, tokenized_chat, max_new_tokens, hooks=None):
-    """Generate text with optional hooks for activation ablation"""
+    """Generate text with optional hooks for activation addition"""
     
     # If hooks are provided, they're already registered and no need to do anything here
     with torch.no_grad():
         output_ids = model.generate(
             tokenized_chat,
             max_new_tokens=max_new_tokens,
-            do_sample=False,  # Use greedy decoding
+            do_sample=True,
+            temperature = 0.6,
             pad_token_id=tokenizer.eos_token_id
         )
             
@@ -196,6 +194,7 @@ def gen_text(model, tokenizer, op_length, tokenized_chat, max_new_tokens, hooks=
 def main():
     args = parse_args()
     print(f"CUDA available: {torch.cuda.is_available()}")
+    print(f"Using alpha={args.alpha} for activation addition")
     gc.collect()
     torch.cuda.empty_cache()
 
@@ -216,22 +215,26 @@ def main():
     torch.cuda.empty_cache()
     
     # Calculate difference of means (cautious direction)
+    # This vector points from non-cautious to cautious
     cautious_dir = get_dir(cautious_mean_act, noncautious_mean_act)
     print(f"Cautious direction shape: {cautious_dir.shape}")
+    print(f"Cautious direction norm: {torch.norm(cautious_dir).item():.4f}")
     
-    # Free memory before generating ablated text
+    # Free memory before generating text with activation addition
     del cautious_mean_act, noncautious_mean_act
     gc.collect()
     torch.cuda.empty_cache()
 
-    # # Load tensor directly from cautious_dir.pt
+    # # Alternative: Load tensor directly from cautious_dir.pt
     # cautious_dir = torch.load('probing/cautious_dir.pt')
     
     # Load model and tokenizer
     model, tokenizer = load_model(args.model_name, args.device)
 
-    # Register hooks for direction ablation
-    ablation_hooks = register_ablation_hooks(model, cautious_dir)
+    # Register hooks for activation addition
+    addition_hooks = register_activation_addition_hooks(
+        model, cautious_dir, target_layer=args.layer, alpha=args.alpha
+    )
 
     prompts = read_csv(args.input_csv)
     results = []
@@ -243,21 +246,26 @@ def main():
         # Apply chat template
         tokenized_chat, op_length = apply_chat_template(prompt, tokenizer, args.device)
             
-        # Generate text with orthogonalized model
-        print("Generating orthogonalized output...")
-        ablated_text = gen_text(model, tokenizer, op_length, tokenized_chat, args.max_new_tokens)
+        # Generate text with activation addition
+        print("Generating text with activation addition...")
+        modified_text = gen_text(model, tokenizer, op_length, tokenized_chat, args.max_new_tokens)
             
         # Save result
-        results.append({"forbidden_prompt": prompt, "response": ablated_text})
-        del prompt, ablated_text
+        results.append({
+            "forbidden_prompt": prompt, 
+            "response": modified_text,
+        })
+        del prompt, modified_text
         gc.collect()
         torch.cuda.empty_cache()
 
     save_csv(results, args.output_csv)
     
     # Remove hooks to clean up
-    for handle in ablation_hooks:
+    for handle in addition_hooks:
         handle.remove()
+    
+    print("Activation addition completed successfully!")
 
 def run():
     main()
