@@ -9,7 +9,7 @@ import pandas as pd
 import gc
 
 # Example usage
-# CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 --dataset_path dataset/cautious.csv --output_dir activations/baseline/ 
+# CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 --dataset_path dataset/non_cautious.csv --output_dir activations/prompt/ --type prompt
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Extract residual stream activations from DeepSeek-R1-Distill-Llama-8B")
@@ -22,7 +22,7 @@ def parse_args():
                         help='Directory to save the activations')
     parser.add_argument('--max_tokens', type=int, default=150,
                         help='Maximum number of tokens to process per example')
-    parser.add_argument('--cot', type=bool, default=False, help="CoT tokens or 3 tokens at the end of prompt")
+    parser.add_argument('--type', type=str, default='cot', help="CoT tokens (cot) or 3 tokens at the end of prompt (baseline) or whole prompt (prompt)")
     return parser.parse_args()
 
 def main():
@@ -49,24 +49,31 @@ def main():
 
     # Initialize dictionary to store activation matrices for each layer
     activation_matrices = {layer: [] for layer in layers}
-    print(f"CoT mode: {args.cot}")
+    print(f"Caching activations mode: {args.type}")
 
     # Process each example
     for idx, row in enumerate(tqdm(df.itertuples())):
         chat = [{"role": "user", "content": row.forbidden_prompt}]
         prompt_tokens = model.tokenizer.apply_chat_template(chat, add_generation_prompt=True)
         
-        if args.cot:
+        if args.type == 'cot':
             # Encode the response separately
             response_tokens = model.tokenizer.encode(row.response, add_special_tokens=False)
             # We want the first 150 tokens of the CoT (response)
             tokens_to_process = prompt_tokens + response_tokens[:args.max_tokens]
             target_start = len(prompt_tokens)  # Start of CoT
             target_end = len(tokens_to_process)  # End of our selection
-        else:
+        elif args.type == 'baseline':
             tokens_to_process = prompt_tokens
             target_start = max(0, len(prompt_tokens) - 3)  # Last 3 tokens of prompt
             target_end = len(prompt_tokens)
+        elif args.type == 'prompt':
+            tokens_to_process = prompt_tokens
+            target_start = 0
+            target_end = len(prompt_tokens)
+        else:
+            print("WARNING args.type not selected. Your choices are cot, baseline, prompt.")
+
 
         # Process the entire sequence at once to avoid batch alignment issues
         input_text = model.tokenizer.decode(tokens_to_process)
@@ -82,14 +89,8 @@ def main():
         
         # Compute means and add to matrices
         for layer in layers:
-            if len(example_layer_activations[layer]) == 1:
-                # Single chunk - extract the target tokens directly
-                layer_activations = example_layer_activations[layer][0]
-                select_tokens = layer_activations[:, target_start:target_end, :]
-            else:
-                # Multiple chunks - concatenate and then extract
-                layer_activations = torch.cat(example_layer_activations[layer], dim=1)
-                select_tokens = layer_activations[:, target_start:target_end, :]
+            layer_activations = example_layer_activations[layer][0]
+            select_tokens = layer_activations[:, target_start:target_end, :]
             
             print(f"Selected tokens shape: {select_tokens.shape}")
             
@@ -104,7 +105,7 @@ def main():
     for layer, activations in activation_matrices.items():
         if activations:
             activation_matrix = np.stack(activations)
-            output_path = os.path.join(args.output_dir, f"deepseek_layer_{layer}_cautious_activations.npy")
+            output_path = os.path.join(args.output_dir, f"deepseek_layer_{layer}_noncautious_activations.npy")
             np.save(output_path, activation_matrix)
             
             print(f"Saved activation matrix for layer {layer} with shape {activation_matrix.shape} to {output_path}")
