@@ -1,2 +1,11 @@
 ipykernel
 pip-tools
+datasets
+numpy
+torch
+einops
+transformers
+pandas
+seaborn
+nnsight
+scikit-learn
