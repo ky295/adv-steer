@@ -75,7 +75,8 @@ def gen_text(model, tokenizer, op_length, tokenized_chat, max_new_tokens):
         output_ids = model.generate(
             tokenized_chat,
             max_new_tokens=max_new_tokens,
-            do_sample=False, # Use greedy decoding
+            do_sample=True, 
+            temperature=0.6,
             pad_token_id=tokenizer.eos_token_id
         )
             

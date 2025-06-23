@@ -2,7 +2,7 @@
 This script visualizes the cosine similarity between a pre-computed direction vector
 and per-token activations from layer 18 of DeepSeek-R1-Distill-Llama-8B.
 """
-# CUDA_VISIBLE_DEVICES=0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python -m probing.analyse_vectors --index 3
+# CUDA_VISIBLE_DEVICES=0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python -m probing.analyse_vectors --index 18 --flag incautious
 import argparse
 import torch
 import matplotlib.pyplot as plt
@@ -20,7 +20,7 @@ def parse_args():
     parser.add_argument("--vector_path", type=str, default="probing/cautious_dir.pt", 
                         help="Path to the pre-computed direction vector")
     parser.add_argument("--ortho", type=bool, default=False, help="Are you using a local model? (y/n)")
-    parser.add_argument('--dataset_path', type=str, default='dataset/cautious.csv',
+    parser.add_argument('--dataset_path', type=str, default='dataset/non_cautious.csv',
                         help='Path to the dataset')
     parser.add_argument("--layer", type=int, default=17, 
                         help="Layer to extract activations from")
@@ -28,6 +28,8 @@ def parse_args():
                         help="Index from cautious.csv")
     parser.add_argument("--output_dir", type=str, default="figures/",
                         help="Directory for output files")
+    parser.add_argument("--flag", type=str, default="incautious",
+                        help="Flag for saving image")
     
     return parser.parse_args()
 
@@ -140,7 +142,7 @@ def plot_heatmap(token_texts, similarities, title, output_path="similarity_heatm
             custom_positions.append(i)
     
     # Create heatmap without x-tick labels initially
-    ax = sns.heatmap(sim_matrix, cmap='coolwarm', center=0, 
+    ax = sns.heatmap(sim_matrix, cmap='coolwarm_r', center=0, 
                    xticklabels=False, yticklabels=["Similarity"], 
                    vmin=-0.4, vmax=0.4)
     
@@ -207,7 +209,7 @@ def main():
     # plot_token_similarities(token_texts, similarities, 
     #                        output_path=os.path.join(args.output_dir, "after_4_bars.png"))
     plot_heatmap(token_texts, similarities, prompt,
-                output_path=os.path.join(args.output_dir, f"heatmap_basemodel_{args.index}.png"))
+                output_path=os.path.join(args.output_dir, f"heatmap_basemodel_{args.index}_{args.flag}.png"))
     
     # Print highest and lowest similarity tokens
     sorted_indices = np.argsort(similarities)

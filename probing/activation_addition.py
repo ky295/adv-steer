@@ -133,7 +133,6 @@ def activation_addition_hook(
     
     # Get original shape for reshaping back later
     original_shape = hidden_states.shape
-    print("len(original_shape)", len(original_shape))
     # For transformer models, hidden_states shape is typically [batch_size, seq_len, hidden_dim]
 
     batch_size, seq_len, hidden_dim = original_shape
