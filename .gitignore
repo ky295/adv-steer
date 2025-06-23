@@ -410,3 +410,7 @@ virtualenv/
 
 requirements.in
 archive/*
+
+requirements.txt
+setup.sh
+github_setup.sh
