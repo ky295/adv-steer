@@ -411,6 +411,5 @@ virtualenv/
 requirements.in
 archive/*
 
-requirements.txt
-setup.sh
-github_setup.sh
+probing/best_of_n.ipynb
+probing/vllm_results.ipynb
