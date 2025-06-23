@@ -17,7 +17,7 @@ def parse_args():
                         help="Load the model")
     parser.add_argument('--input_csv', type=str, default='dataset/cautious.csv',    
                         help='Path to the input CSV file with prompts')
-    parser.add_argument('--output_csv', type=str, default='dataset/validate/cautious_output_vllm.csv',
+    parser.add_argument('--output_csv', type=str, default='dataset/cautious_output_vllm2.csv',
                         help='Path to save the output CSV file')
     parser.add_argument("--max_new_tokens", type=int, default=2048, 
                         help="Maximum number of tokens to generate")
@@ -134,7 +134,7 @@ def main():
     sampling_params = SamplingParams(
         max_tokens=args.max_new_tokens,
         temperature=args.temperature,
-        top_p=args.top_p
+        # top_p=args.top_p
     )
     
     print(f"Processing {len(prompts)} prompts with {args.repetitions} repetitions each...")
