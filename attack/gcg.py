@@ -3,7 +3,7 @@ import copy
 import gc
 import logging
 from dataclasses import dataclass, asdict, field
-from typing import Any, List, Optional, Tuple, Union, cast
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -14,16 +14,16 @@ from transformers import set_seed
 from transformers.cache_utils import DynamicCache
 
 import wandb
-from nanogcg.utils import (INIT_CHARS, configure_pad_token,
+from attack.utils import (INIT_CHARS, configure_pad_token,
                            find_executable_batch_size, get_nonascii_toks,
                            mellowmax)
 
 
 
-logger = logging.getLogger("nanogcg")
+logger: logging.Logger = logging.getLogger("nanogcg")
 if not logger.hasHandlers():
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter(
+    handler: logging.StreamHandler = logging.StreamHandler()
+    formatter: logging.Formatter = logging.Formatter(
         "%(asctime)s [%(filename)s:%(lineno)d] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
@@ -712,14 +712,14 @@ class GCG:
         Returns:
             Generated response text, up to `max_new_tokens` tokens and with sampling parameters specified in the config dataclass.
         """
-        messages = [{"role": "user", "content": prompt}]
-        input_tensor = self.tokenizer.apply_chat_template(
+        messages: list[dict[str, str]] = [{"role": "user", "content": prompt}]
+        input_tensor: Tensor = self.tokenizer.apply_chat_template(
             messages, add_generation_prompt=True, return_tensors="pt"
         ).to(self.model.device, torch.int64)
 
-        attention_mask = torch.ones_like(input_tensor)
+        attention_mask: Tensor = torch.ones_like(input_tensor)
 
-        output = self.model.generate(
+        output: Tensor = self.model.generate(
             input_tensor,
             attention_mask=attention_mask,
             do_sample=self.config.do_sample,
@@ -729,7 +729,7 @@ class GCG:
             pad_token_id=self.tokenizer.eos_token_id,
         )
 
-        response = self.tokenizer.batch_decode(
+        response: str = self.tokenizer.batch_decode(
             output[:, input_tensor.shape[1] :], skip_special_tokens=True
         )[0]
 
@@ -750,18 +750,19 @@ class GCG:
         Returns:
             GCGResult: Object containing the best loss, best string, and lists of losses and strings from each optimization step.
         """
-        model = self.model
-        tokenizer = self.tokenizer
-        config = self.config
+        model: transformers.PreTrainedModel = self.model
+        tokenizer: transformers.PreTrainedTokenizer = self.tokenizer
+        config: GCGConfig = self.config
 
         if config.seed is not None:
             set_seed(config.seed)
-            torch.use_deterministic_algorithms(True, warn_only=True)
+            # torch.use_deterministic_algorithms(True, warn_only=True)
+            torch.use_deterministic_algorithms(False) # set to True for fuller reproducability - a lot of noisy errors though
 
         if isinstance(messages, str):
-            messages = [{"role": "user", "content": messages}]
+            messages: list[str] = [{"role": "user", "content": messages}]
         else:
-            messages = copy.deepcopy(messages)
+            messages: list[dict[str, str]] = copy.deepcopy(messages)
 
         # Append the GCG string at the appropriate location
         if not any(["{optim_str}" in d["content"] for d in messages]):
@@ -772,29 +773,36 @@ class GCG:
                 # Add as suffix: original_content + {optim_str} (original behavior)
                 messages[-1]["content"] = messages[-1]["content"] + "{optim_str}"
 
-        template = tokenizer.apply_chat_template(
+        template: str = tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
         # Remove the BOS token -- this will get added when tokenizing, if necessary
         if tokenizer.bos_token and template.startswith(tokenizer.bos_token):
-            template = template.replace(tokenizer.bos_token, "")
+            template: str = template.replace(tokenizer.bos_token, "")
+
+        before_str: str
+        after_str: str
         before_str, after_str = template.split("{optim_str}")
 
-        target = " " + target if config.add_space_before_target else target
+        target: str = " " + target if config.add_space_before_target else target
 
         # Tokenize everything that doesn't get optimized
-        before_ids = tokenizer([before_str], padding=False, return_tensors="pt")[
+        before_ids: Tensor = tokenizer([before_str], padding=False, return_tensors="pt")[
             "input_ids"
         ].to(model.device, torch.int64)
-        after_ids = tokenizer(
+        after_ids: Tensor = tokenizer(
             [after_str], add_special_tokens=False, return_tensors="pt"
         )["input_ids"].to(model.device, torch.int64)
-        target_ids = tokenizer([target], add_special_tokens=False, return_tensors="pt")[
+        target_ids: Tensor = tokenizer([target], add_special_tokens=False, return_tensors="pt")[
             "input_ids"
         ].to(model.device, torch.int64)
 
         # Embed everything that doesn't get optimized
-        embedding_layer = self.embedding_layer
+        embedding_layer: torch.nn.Embedding = self.embedding_layer
+
+        before_embeds: Tensor
+        after_embeds: Tensor
+        target_embeds: Tensor
         before_embeds, after_embeds, target_embeds = [
             embedding_layer(ids) for ids in (before_ids, after_ids, target_ids)
         ]
@@ -802,7 +810,7 @@ class GCG:
         # Compute the KV Cache for tokens that appear before the optimized tokens
         if config.use_prefix_cache:
             with torch.no_grad():
-                output = model(inputs_embeds=before_embeds, use_cache=True)
+                output: Tensor = model(inputs_embeds=before_embeds, use_cache=True)
                 # Convert tuple cache to DynamicCache if needed
                 if isinstance(output.past_key_values, tuple):
                     self.prefix_cache = DynamicCache.from_legacy_cache(
@@ -848,7 +856,7 @@ class GCG:
 
             if config.use_prefix_cache:
                 with torch.no_grad():
-                    output = self.draft_model(
+                    output: Tensor = self.draft_model(
                         inputs_embeds=self.draft_before_embeds, use_cache=True
                     )
                     # Convert tuple cache to DynamicCache if needed
@@ -860,21 +868,21 @@ class GCG:
                         self.draft_prefix_cache = output.past_key_values
 
         # Initialize the attack buffer
-        buffer = self.init_buffer()
-        optim_ids = buffer.get_best_ids()
+        buffer: AttackBuffer = self.init_buffer()
+        optim_ids: Tensor = buffer.get_best_ids()
 
-        losses = []
-        optim_strings = []
+        losses: list[float] = []
+        optim_strings: list[str] = []
 
         for step in tqdm(range(config.num_steps)):
             self.step = step  # Update step counter
 
             # Compute the token gradient
-            optim_ids_onehot_grad = self.compute_token_gradient(optim_ids)
+            optim_ids_onehot_grad: Tensor = self.compute_token_gradient(optim_ids)
 
             with torch.no_grad():
                 # Sample candidate token sequences based on the token gradient
-                sampled_ids = sample_ids_from_grad(
+                sampled_ids: Tensor = sample_ids_from_grad(
                     optim_ids.squeeze(0),
                     optim_ids_onehot_grad.squeeze(0),
                     config.search_width,
@@ -884,9 +892,9 @@ class GCG:
                 )
 
                 if config.filter_ids:
-                    sampled_ids = filter_ids(sampled_ids, tokenizer)
+                    sampled_ids: Tensor = filter_ids(sampled_ids, tokenizer)
 
-                new_search_width = sampled_ids.shape[0]
+                new_search_width: int = sampled_ids.shape[0]
 
                 # Store gradient statistics for wandb
                 if self.using_wandb:
@@ -896,11 +904,11 @@ class GCG:
                     )
 
                 # Compute loss on all candidate sequences
-                batch_size = (
+                batch_size: int = (
                     new_search_width if config.batch_size is None else config.batch_size
                 )
                 if self.prefix_cache:
-                    input_embeds = torch.cat(
+                    input_embeds: Tensor = torch.cat(
                         [
                             embedding_layer(sampled_ids),
                             after_embeds.repeat(new_search_width, 1, 1),
@@ -909,7 +917,7 @@ class GCG:
                         dim=1,
                     )
                 else:
-                    input_embeds = torch.cat(
+                    input_embeds: Tensor = torch.cat(
                         [
                             before_embeds.repeat(new_search_width, 1, 1),
                             embedding_layer(sampled_ids),
@@ -920,12 +928,14 @@ class GCG:
                     )
 
                 if self.config.probe_sampling_config is None:
-                    loss = find_executable_batch_size(
+                    loss: Tensor = find_executable_batch_size(
                         self._compute_candidates_loss_original, batch_size
                     )(input_embeds)
-                    current_loss = loss.min().item()
-                    optim_ids = sampled_ids[loss.argmin()].unsqueeze(0)
+                    current_loss: float = loss.min().item()
+                    optim_ids: Tensor = sampled_ids[loss.argmin()].unsqueeze(0)
                 else:
+                    current_loss: float
+                    optim_ids: Tensor
                     current_loss, optim_ids = find_executable_batch_size(
                         self._compute_candidates_loss_probe_sampling, batch_size
                     )(
@@ -938,8 +948,8 @@ class GCG:
                 if buffer.size == 0 or current_loss < buffer.get_highest_loss():
                     buffer.add(current_loss, optim_ids)
 
-            optim_ids = buffer.get_best_ids()
-            optim_str = tokenizer.batch_decode(optim_ids)[0]
+            optim_ids: Tensor = buffer.get_best_ids()
+            optim_str: str = tokenizer.batch_decode(optim_ids)[0]
             optim_strings.append(optim_str)
 
             buffer.log_buffer(tokenizer)
@@ -966,15 +976,15 @@ class GCG:
                 self.log_wandb_metrics()
 
                 # Update summary with latest best string
-                best_string_value = tokenizer.batch_decode(buffer.get_best_ids())[0]
+                best_string_value: str = tokenizer.batch_decode(buffer.get_best_ids())[0]
                 wandb.run.summary["best_string"] = best_string_value
                 wandb.run.summary["best_loss"] = best_loss
 
                 # Generate and log model response periodically
                 if step % config.example_generation_frequency == 0:
-                    full_prompt = self.config.prompt_string + " " + best_string_value
+                    full_prompt: str = self.config.prompt_string + " " + best_string_value
 
-                    response = self.generate_response(full_prompt)
+                    response: str = self.generate_response(full_prompt)
                     logger.debug(f"Generated response at step {step}: {response}")
 
                     wandb.run.summary["best_answer"] = response
@@ -985,20 +995,20 @@ class GCG:
                     wandb.run.summary["early_stopped"] = True
                 break
 
-        min_loss_index = losses.index(min(losses))
+        min_loss_index: int = losses.index(min(losses))
 
         # Generate response and log to wandb
-        best_string_value = tokenizer.batch_decode(buffer.get_best_ids())[0]
-        full_prompt = self.config.prompt_string + " " + best_string_value
+        best_string_value: str = tokenizer.batch_decode(buffer.get_best_ids())[0]
+        full_prompt: str = self.config.prompt_string + " " + best_string_value
         print(full_prompt)
 
-        response = self.generate_response(full_prompt)
+        response: str  = self.generate_response(full_prompt)
         logger.debug(f"Final generated response: {response}")
 
         if self.using_wandb:
             wandb.run.summary["best_answer"] = response
 
-        result = GCGResult(
+        result: GCGResult = GCGResult(
             best_loss=losses[min_loss_index],
             best_string=optim_strings[min_loss_index],
             losses=losses,
@@ -1015,37 +1025,37 @@ class GCG:
         Returns:
             AttackBuffer: Initialized attack buffer with initial token sequences.
         """
-        model = self.model
-        tokenizer = self.tokenizer
-        config = self.config
+        model: transformers.PreTrainedModel = self.model
+        tokenizer: transformers.PreTrainedTokenizer = self.tokenizer
+        config: GCGConfig = self.config
 
         logger.info(f"Initializing attack buffer of size {config.buffer_size}...")
 
         # Create the attack buffer and initialize the buffer ids
-        buffer = AttackBuffer(config.buffer_size)
+        buffer: AttackBuffer = AttackBuffer(config.buffer_size)
 
         if isinstance(config.optim_str_init, str):
-            init_optim_ids = tokenizer(
+            init_optim_ids: Tensor = tokenizer(
                 config.optim_str_init, add_special_tokens=False, return_tensors="pt"
             )["input_ids"].to(model.device)
             if config.buffer_size > 1:
-                init_buffer_ids = (
+                init_buffer_ids: Tensor = (
                     tokenizer(
                         INIT_CHARS, add_special_tokens=False, return_tensors="pt"
                     )["input_ids"]
                     .squeeze()
                     .to(model.device)
                 )
-                init_indices = torch.randint(
+                init_indices: Tensor = torch.randint(
                     0,
                     init_buffer_ids.shape[0],
                     (config.buffer_size - 1, init_optim_ids.shape[1]),
                 )
-                init_buffer_ids = torch.cat(
+                init_buffer_ids: Tensor = torch.cat(
                     [init_optim_ids, init_buffer_ids[init_indices]], dim=0
                 )
             else:
-                init_buffer_ids = init_optim_ids
+                init_buffer_ids: Tensor = init_optim_ids
 
         else:  # assume list
             if len(config.optim_str_init) != config.buffer_size:
@@ -1053,7 +1063,7 @@ class GCG:
                     f"Using {len(config.optim_str_init)} initializations but buffer size is set to {config.buffer_size}"
                 )
             try:
-                init_buffer_ids = tokenizer(
+                init_buffer_ids: Tensor = tokenizer(
                     config.optim_str_init, add_special_tokens=False, return_tensors="pt"
                 )["input_ids"].to(model.device)
             except ValueError:
@@ -1061,11 +1071,11 @@ class GCG:
                     "Unable to create buffer. Ensure that all initializations tokenize to the same length."
                 )
 
-        true_buffer_size = max(1, config.buffer_size)
+        true_buffer_size: int = max(1, config.buffer_size)
 
         # Compute the loss on the initial buffer entries
         if self.prefix_cache:
-            init_buffer_embeds = torch.cat(
+            init_buffer_embeds: Tensor = torch.cat(
                 [
                     self.embedding_layer(init_buffer_ids),
                     self.after_embeds.repeat(true_buffer_size, 1, 1),
@@ -1074,7 +1084,7 @@ class GCG:
                 dim=1,
             )
         else:
-            init_buffer_embeds = torch.cat(
+            init_buffer_embeds: Tensor = torch.cat(
                 [
                     self.before_embeds.repeat(true_buffer_size, 1, 1),
                     self.embedding_layer(init_buffer_ids),
@@ -1084,7 +1094,7 @@ class GCG:
                 dim=1,
             )
 
-        init_buffer_losses = find_executable_batch_size(
+        init_buffer_losses: Tensor = find_executable_batch_size(
             self._compute_candidates_loss_original, true_buffer_size
         )(init_buffer_embeds)
 
@@ -1108,73 +1118,73 @@ class GCG:
         Returns:
             Tensor: Gradient of the GCG loss w.r.t the one-hot token matrix.
         """
-        model = self.model
-        embedding_layer = self.embedding_layer
+        model: transformers.PreTrainedModel = self.model
+        embedding_layer: torch.nn.Embedding = self.embedding_layer
 
         # Clear previous activations
         self.layer_activations = {}
 
         # Create the one-hot encoding matrix of our optimized token ids
-        optim_ids_onehot = torch.nn.functional.one_hot(
+        optim_ids_onehot: Tensor = torch.nn.functional.one_hot(
             optim_ids, num_classes=embedding_layer.num_embeddings
         )
-        optim_ids_onehot = optim_ids_onehot.to(model.device, model.dtype)
+        optim_ids_onehot: Tensor = optim_ids_onehot.to(model.device, model.dtype)
         optim_ids_onehot.requires_grad_()
 
         # (1, num_optim_tokens, vocab_size) @ (vocab_size, embed_dim) -> (1, num_optim_tokens, embed_dim)
-        optim_embeds = optim_ids_onehot @ embedding_layer.weight
+        optim_embeds: Tensor = optim_ids_onehot @ embedding_layer.weight
 
         # Calculate how many additional tokens we need beyond target for refusal calculation
-        target_length = self.target_ids.shape[1]
-        additional_tokens_needed = max(
+        target_length: int = self.target_ids.shape[1]
+        additional_tokens_needed: int = max(
             0, self.config.refusal_num_tokens - target_length
         )
 
         if self.prefix_cache:
-            input_embeds = torch.cat(
+            input_embeds: Tensor = torch.cat(
                 [optim_embeds, self.after_embeds, self.target_embeds], dim=1
             )
 
             # Generate additional tokens if needed for refusal calculation
             if self.config.use_refusal_direction and additional_tokens_needed > 0:
                 # First, get the basic output with target tokens
-                output = model(
+                output: Tensor = model(
                     inputs_embeds=input_embeds,
                     past_key_values=self.prefix_cache,
                     use_cache=True,
                 )
 
                 # Now generate additional tokens for refusal calculation
-                extended_embeds = input_embeds.clone()
-                current_kv_cache = output.past_key_values
+                extended_embeds: Tensor = input_embeds.clone()
+                current_kv_cache: Tensor = output.past_key_values
 
                 for _ in range(additional_tokens_needed):
                     # Get logits for the last position
-                    last_logits = output.logits[
+                    last_logits: Tensor = output.logits[
                         :, -1:, :
                     ]  # [batch_size, 1, vocab_size]
 
                     # Sample next token (using argmax for deterministic behavior during gradient computation)
-                    next_token_id = torch.argmax(last_logits, dim=-1)  # [batch_size, 1]
-                    next_token_embed = embedding_layer(
+                    next_token_id: Tensor = torch.argmax(last_logits, dim=-1)  # [batch_size, 1]
+                    next_token_embed: Tensor = embedding_layer(
                         next_token_id
                     )  # [batch_size, 1, embed_dim]
 
                     # Append to sequence
-                    extended_embeds = torch.cat(
+                    extended_embeds: Tensor = torch.cat(
                         [extended_embeds, next_token_embed], dim=1
                     )
 
                     # Continue generation
-                    output = model(
+                    output: Tensor = model(
                         inputs_embeds=next_token_embed,
                         past_key_values=current_kv_cache,
                         use_cache=True,
                     )
-                    current_kv_cache = output.past_key_values
+                    current_kv_cache: Tensor = output.past_key_values
 
                 # Use the extended sequence for final loss calculation
-                final_output = model(
+                final_output: Tensor = model(
                     inputs_embeds=extended_embeds,
                     past_key_values=self.prefix_cache,
                     use_cache=True,
@@ -1182,14 +1192,14 @@ class GCG:
                 self.current_extended_embeds = extended_embeds
 
             else:
-                final_output = model(
+                final_output: Tensor = model(
                     inputs_embeds=input_embeds,
                     past_key_values=self.prefix_cache,
                     use_cache=True,
                 )
                 self.current_extended_embeds = input_embeds
         else:
-            input_embeds = torch.cat(
+            input_embeds: Tensor = torch.cat(
                 [
                     self.before_embeds,
                     optim_embeds,
@@ -1201,42 +1211,42 @@ class GCG:
 
             # Generate additional tokens if needed for refusal calculation
             if self.config.use_refusal_direction and additional_tokens_needed > 0:
-                extended_embeds = input_embeds.clone()
+                extended_embeds: Tensor = input_embeds.clone()
 
                 for _ in range(additional_tokens_needed):
-                    output = model(inputs_embeds=extended_embeds)
-                    last_logits = output.logits[:, -1:, :]
-                    next_token_id = torch.argmax(last_logits, dim=-1)
-                    next_token_embed = embedding_layer(next_token_id)
-                    extended_embeds = torch.cat(
+                    output: Tensor = model(inputs_embeds=extended_embeds)
+                    last_logits: Tensor = output.logits[:, -1:, :]
+                    next_token_id: Tensor = torch.argmax(last_logits, dim=-1)
+                    next_token_embed: Tensor = embedding_layer(next_token_id)
+                    extended_embeds: Tensor = torch.cat(
                         [extended_embeds, next_token_embed], dim=1
                     )
 
-                final_output = model(inputs_embeds=extended_embeds)
+                final_output: Tensor = model(inputs_embeds=extended_embeds)
                 self.current_extended_embeds = extended_embeds
             else:
-                final_output = model(inputs_embeds=input_embeds)
+                final_output: Tensor = model(inputs_embeds=input_embeds)
                 self.current_extended_embeds = input_embeds
 
-        logits = final_output.logits
+        logits: Tensor = final_output.logits
 
         # Token forcing loss: ONLY over the target tokens (no change from original)
         # We need to calculate based on the original input length, not extended length
-        original_input_length = input_embeds.shape[1]  # Original sequence length
-        shift = original_input_length - self.target_ids.shape[1]
+        original_input_length: int = input_embeds.shape[1]  # Original sequence length
+        shift: int = original_input_length - self.target_ids.shape[1]
 
         # Extract logits for target tokens only, regardless of additional generation
-        shift_logits = logits[
+        shift_logits: Tensor = logits[
             ..., shift - 1 : shift - 1 + self.target_ids.shape[1], :
         ].contiguous()
-        shift_labels = self.target_ids
+        shift_labels: Tensor = self.target_ids
 
         # Compute loss with refusal direction (refusal calculation uses extended sequence if available)
-        loss = self.compute_loss_with_refusal_direction(
+        loss: Tensor = self.compute_loss_with_refusal_direction(
             shift_logits, shift_labels, self.current_extended_embeds
         )
 
-        optim_ids_onehot_grad = torch.autograd.grad(
+        optim_ids_onehot_grad: Tensor = torch.autograd.grad(
             outputs=[loss], inputs=[optim_ids_onehot]
         )[0]
 
@@ -1255,20 +1265,20 @@ class GCG:
         Returns:
             Tensor: Losses for each candidate sequence in the batch.
         """
-        all_loss = []
-        prefix_cache_batch = None
+        all_loss: list[Tensor] = []
+        prefix_cache_batch: Optional[DynamicCache] = None
 
         for i in range(0, input_embeds.shape[0], search_batch_size):
             with torch.no_grad():
                 # Clear activations for this batch
                 self.layer_activations = {}
 
-                input_embeds_batch = input_embeds[i : i + search_batch_size]
-                current_batch_size = input_embeds_batch.shape[0]
+                input_embeds_batch: Tensor = input_embeds[i : i + search_batch_size]
+                current_batch_size: int = input_embeds_batch.shape[0]
 
                 # Calculate if we need additional tokens for refusal calculation
-                target_length = self.target_ids.shape[1]
-                additional_tokens_needed = (
+                target_length: int = self.target_ids.shape[1]
+                additional_tokens_needed: int = (
                     max(0, self.config.refusal_num_tokens - target_length)
                     if self.config.use_refusal_direction
                     else 0
@@ -1284,13 +1294,13 @@ class GCG:
                             # Create a new DynamicCache for the batch
                             prefix_cache_batch = DynamicCache()
                             for layer_idx in range(len(self.prefix_cache)):
-                                key_states = self.prefix_cache.key_cache[layer_idx]
-                                value_states = self.prefix_cache.value_cache[layer_idx]
+                                key_states: Tensor = self.prefix_cache.key_cache[layer_idx]
+                                value_states: Tensor = self.prefix_cache.value_cache[layer_idx]
                                 # Expand for batch size
-                                key_states_expanded = key_states.expand(
+                                key_states_expanded: Tensor = key_states.expand(
                                     current_batch_size, -1, -1, -1
                                 )
-                                value_states_expanded = value_states.expand(
+                                value_states_expanded: Tensor = value_states.expand(
                                     current_batch_size, -1, -1, -1
                                 )
                                 prefix_cache_batch.update(
@@ -1300,7 +1310,7 @@ class GCG:
                                 )
                         else:
                             # Legacy tuple format handling (fallback)
-                            prefix_cache_batch = [
+                            prefix_cache_batch: list[tuple[Tensor, Tensor]] = [ # check type hint
                                 [
                                     x.expand(current_batch_size, -1, -1, -1)
                                     for x in self.prefix_cache[i]
@@ -1311,93 +1321,93 @@ class GCG:
                     # Generate additional tokens if needed
                     if additional_tokens_needed > 0:
                         # First get output with original sequence
-                        outputs = self.model(
+                        outputs: Tensor = self.model(
                             inputs_embeds=input_embeds_batch,
                             past_key_values=prefix_cache_batch,
                             use_cache=True,
                         )
 
                         # Generate additional tokens
-                        extended_embeds = input_embeds_batch.clone()
-                        current_kv_cache = outputs.past_key_values
+                        extended_embeds: Tensor = input_embeds_batch.clone()
+                        current_kv_cache: Tensor = outputs.past_key_values
 
                         for _ in range(additional_tokens_needed):
                             # Get logits for the last position
-                            last_logits = outputs.logits[
+                            last_logits: Tensor = outputs.logits[
                                 :, -1:, :
                             ]  # [batch_size, 1, vocab_size]
 
                             # Sample next token (using argmax for deterministic behavior)
-                            next_token_id = torch.argmax(
+                            next_token_id: Tensor = torch.argmax(
                                 last_logits, dim=-1
                             )  # [batch_size, 1]
-                            next_token_embed = self.embedding_layer(
+                            next_token_embed: Tensor = self.embedding_layer(
                                 next_token_id
                             )  # [batch_size, 1, embed_dim]
 
                             # Append to sequence
-                            extended_embeds = torch.cat(
+                            extended_embeds: Tensor = torch.cat(
                                 [extended_embeds, next_token_embed], dim=1
                             )
 
                             # Continue generation
-                            outputs = self.model(
+                            outputs: Tensor = self.model(
                                 inputs_embeds=next_token_embed,
                                 past_key_values=current_kv_cache,
                                 use_cache=True,
                             )
-                            current_kv_cache = outputs.past_key_values
+                            current_kv_cache: Tensor = outputs.past_key_values
 
                         # Final forward pass with extended sequence
-                        outputs = self.model(
+                        outputs: Tensor = self.model(
                             inputs_embeds=extended_embeds,
                             past_key_values=prefix_cache_batch,
                             use_cache=True,
                         )
-                        final_embeds = extended_embeds
+                        final_embeds: Tensor = extended_embeds
                     else:
-                        outputs = self.model(
+                        outputs: Tensor = self.model(
                             inputs_embeds=input_embeds_batch,
                             past_key_values=prefix_cache_batch,
                             use_cache=True,
                         )
-                        final_embeds = input_embeds_batch
+                        final_embeds: Tensor = input_embeds_batch
                 else:
                     # Non-prefix case remains largely the same
                     if additional_tokens_needed > 0:
-                        extended_embeds = input_embeds_batch.clone()
+                        extended_embeds: Tensor = input_embeds_batch.clone()
 
                         for _ in range(additional_tokens_needed):
-                            outputs = self.model(inputs_embeds=extended_embeds)
-                            last_logits = outputs.logits[:, -1:, :]
-                            next_token_id = torch.argmax(last_logits, dim=-1)
-                            next_token_embed = self.embedding_layer(next_token_id)
-                            extended_embeds = torch.cat(
+                            outputs: Tensor = self.model(inputs_embeds=extended_embeds)
+                            last_logits: Tensor = outputs.logits[:, -1:, :]
+                            next_token_id: Tensor = torch.argmax(last_logits, dim=-1)
+                            next_token_embed: Tensor = self.embedding_layer(next_token_id)
+                            extended_embeds: Tensor = torch.cat(
                                 [extended_embeds, next_token_embed], dim=1
                             )
 
-                        outputs = self.model(inputs_embeds=extended_embeds)
-                        final_embeds = extended_embeds
+                        outputs: Tensor = self.model(inputs_embeds=extended_embeds)
+                        final_embeds: Tensor = extended_embeds
                     else:
-                        outputs = self.model(inputs_embeds=input_embeds_batch)
-                        final_embeds = input_embeds_batch
+                        outputs: Tensor = self.model(inputs_embeds=input_embeds_batch)
+                        final_embeds: Tensor = input_embeds_batch
 
-                logits = outputs.logits
+                logits: Tensor = outputs.logits
 
                 # Token forcing loss calculation (unchanged - only over target tokens)
-                original_input_length = input_embeds.shape[
+                original_input_length: int = input_embeds.shape[
                     1
                 ]  # Length without additional tokens
-                tmp = original_input_length - self.target_ids.shape[1]
+                tmp: int = original_input_length - self.target_ids.shape[1]
 
                 # Extract logits corresponding to the original target region
-                shift_logits = logits[
+                shift_logits: Tensor = logits[
                     ..., tmp - 1 : tmp - 1 + self.target_ids.shape[1], :
                 ].contiguous()
-                shift_labels = self.target_ids.repeat(current_batch_size, 1)
+                shift_labels: Tensor = self.target_ids.repeat(current_batch_size, 1)
 
                 # Use the new loss function with extended embeddings for refusal calculation
-                batch_loss = self.compute_loss_with_refusal_direction(
+                batch_loss: Tensor = self.compute_loss_with_refusal_direction(
                     shift_logits, shift_labels, final_embeds
                 )
                 all_loss.append(batch_loss)
@@ -1446,14 +1456,14 @@ class GCG:
 
         # Original loss calculation (cross-entropy or mellowmax)
         if self.config.use_mellowmax:
-            label_logits = torch.gather(
+            label_logits: Tensor = torch.gather(
                 shift_logits, -1, shift_labels.unsqueeze(-1)
             ).squeeze(-1)
-            original_loss = mellowmax(
+            original_loss: Tensor = mellowmax(
                 -label_logits, alpha=self.config.mellowmax_alpha, dim=-1
             )
         else:
-            original_loss = (
+            original_loss: Tensor = (
                 torch.nn.functional.cross_entropy(
                     shift_logits.view(-1, shift_logits.size(-1)),
                     shift_labels.view(-1),
@@ -1469,7 +1479,7 @@ class GCG:
             self.add_wandb_metric("token_force_loss_min", original_loss.min().item())
 
         # Get current beta (with scheduling if enabled)
-        current_beta = self.get_current_refusal_beta()
+        current_beta: float = self.get_current_refusal_beta()
 
         if self.using_wandb:
             self.add_wandb_metric("refusal_beta", current_beta)
@@ -1479,9 +1489,9 @@ class GCG:
             return original_loss
 
         # Compute refusal loss term
-        refusal_loss = self._compute_cot_refusal_loss(input_embeds)
+        refusal_loss: Tensor = self._compute_cot_refusal_loss(input_embeds)
 
-        refusal_loss = refusal_loss / 3
+        refusal_loss: Tensor = refusal_loss / 3 # roughly scale (a bit janky)
 
         if refusal_loss is not None:
             # Log refusal metrics
@@ -1494,12 +1504,12 @@ class GCG:
 
             if self.config.promote_caution:
                 # Maximize refusal alignment (promote caution)
-                combined_loss = (
+                combined_loss: Tensor = (
                     1 - current_beta
                 ) * original_loss - current_beta * refusal_loss
             else:
                 # Minimize refusal alignment (suppress refusal)
-                combined_loss = (
+                combined_loss: Tensor = (
                     1 - current_beta
                 ) * original_loss + current_beta * refusal_loss
 
@@ -1527,14 +1537,14 @@ class GCG:
             return self.config.refusal_beta
 
         # Determine end step for schedule
-        end_step = (
+        end_step: int = (
             self.config.schedule_end_step
             if self.config.schedule_end_step is not None
             else self.config.num_steps
         )
 
         # Make sure start_step is less than end_step
-        start_step = min(self.config.schedule_start_step, end_step - 1)
+        start_step: int = min(self.config.schedule_start_step, end_step - 1)
 
         # If we're before the start of the schedule, use the start value
         if self.step < start_step:
@@ -1545,12 +1555,12 @@ class GCG:
             return self.config.refusal_beta_end
 
         # Determine current step within the schedule
-        current_schedule_step = self.step - start_step
-        total_schedule_steps = end_step - start_step
+        current_schedule_step: int = self.step - start_step
+        total_schedule_steps: int = end_step - start_step
 
         # Apply the appropriate schedule
         if self.config.schedule_type.lower() == "linear":
-            from nanogcg.utils import linear_schedule
+            from attack.utils import linear_schedule
 
             return linear_schedule(
                 self.config.refusal_beta_start,
@@ -1559,7 +1569,7 @@ class GCG:
                 total_schedule_steps,
             )
         elif self.config.schedule_type.lower() == "exponential":
-            from nanogcg.utils import exponential_schedule
+            from attack.utils import exponential_schedule
 
             return exponential_schedule(
                 self.config.refusal_beta_start,
@@ -1569,7 +1579,7 @@ class GCG:
                 exponent=self.config.schedule_exponent,
             )
         elif self.config.schedule_type.lower() == "power":
-            from nanogcg.utils import power_schedule
+            from attack.utils import power_schedule
 
             return power_schedule(
                 self.config.refusal_beta_start,
@@ -1606,10 +1616,11 @@ def run(
         A GCGResult object that contains losses and the optimized strings.
     """
     if config is None:
-        config = GCGConfig()
+        config: GCGConfig = GCGConfig()
 
     logger.setLevel(getattr(logging, config.verbosity))
 
-    gcg = GCG(model, tokenizer, config)
-    result = gcg.run(messages, target)
+    gcg: GCG = GCG(model, tokenizer, config)
+    result: GCGResult = gcg.run(messages, target)
+
     return result

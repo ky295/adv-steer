@@ -37,7 +37,7 @@ def get_nonascii_toks(tokenizer, device="cpu"):
     def is_ascii(s):
         return s.isascii() and s.isprintable()
 
-    nonascii_toks = []
+    nonascii_toks: list[int] = []
     for i in range(tokenizer.vocab_size):
         if not is_ascii(tokenizer.decode([i])):
             nonascii_toks.append(i)
@@ -85,7 +85,7 @@ def should_reduce_batch_size(exception: Exception) -> bool:
 
 
 # modified from https://github.com/huggingface/accelerate/blob/85a75d4c3d0deffde2fc8b917d9b1ae1cb580eb2/src/accelerate/utils/memory.py#L87
-def find_executable_batch_size(
+def find_executable_batch_size(  # typing: ignore
     function: callable = None, starting_batch_size: int = 128
 ):
     """
@@ -123,10 +123,10 @@ def find_executable_batch_size(
         batch_size: int = starting_batch_size
         gc.collect()
         torch.cuda.empty_cache()
-        params = list(inspect.signature(function).parameters.keys())
+        params: list[str] = list(inspect.signature(function).parameters.keys())
         # Guard against user error
         if len(params) < (len(args) + 1):
-            arg_str = ", ".join(
+            arg_str: str = ", ".join(
                 [f"{arg}={value}" for arg, value in zip(params[1:], args[1:])]
             )
             raise TypeError(

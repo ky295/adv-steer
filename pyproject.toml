@@ -21,7 +21,17 @@ dependencies = [
     "scipy>=1.7.0",
     "seaborn>=0.13.2",
     "sentencepiece>=0.2.0",
+    "strong-reject",
     "torch>=2.7.1",
     "transformers>=4.52.4",
     "wandb>=0.20.1",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.12.0",
+    "ty>=0.0.1a11",
+]
+
+[tool.uv.sources]
+strong-reject = { git = "https://github.com/dsbowen/strong_reject.git", rev = "main" }

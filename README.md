@@ -69,15 +69,23 @@ We can then use the `probing/ortho_csv_generation.py` script to save a .csv file
 
 Using `probing/ortho_results.ipynb`, we can compare StrongREJECT fine-tuned evaluator scores before and after applying the weight orthogonalisation using the caution direction.
 
+## Prompt-based Attacks
+
+This GCG-style implementation is developed from GraySwanAI's [nanoGCG](https://github.com/GraySwanAI/nanoGCG), under an MIT license. 
+
+```
+uv run attack/run_experiments.py --beta 0.5
+```
+
+
+
 ## Dependencies
 
-The usual stuff:
-
 ```
-pip install -r requirements.txt
+pip install .
 ```
 
-Also, required
+Or, with UV (dependencies managed automatically)
 ```
-pip install git+https://github.com/dsbowen/strong_reject.git@main 
+uv run {filename.py}
 ```
