@@ -1,5 +1,10 @@
 # Adversarial Manipulation of Chain-of-Thought
 
+> [!CAUTION]
+> This repository contains datasets with offensive content and code to produce a jailbroken (unaligned) reasoning model.
+> 
+> It is intended **only** for research purposes. 
+
 ## Related materials 
 **Exploitation of linear representation hypothesis**
 - (Zou et al., 2023a) Representation Engineering: A top-down approach to AI transparency
