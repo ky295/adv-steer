@@ -85,7 +85,7 @@ uv run attack/run_experiments.py --beta 0.5
 pip install .
 ```
 
-Or, with UV (dependencies managed automatically)
+Or, with [uv](https://docs.astral.sh/uv/) (dependencies managed automatically)
 ```
 uv run {filename.py}
 ```
