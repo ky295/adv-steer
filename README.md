@@ -89,3 +89,8 @@ Or, with UV (dependencies managed automatically)
 ```
 uv run {filename.py}
 ```
+
+To install development dependencies (ruff and ty),
+```
+pip install ".[dev]"
+```
