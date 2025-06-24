@@ -92,5 +92,5 @@ uv run {filename.py}
 
 To install development dependencies (ruff and ty),
 ```
-pip install ".[dev]"
+pip install -e ".[dev]"
 ```
