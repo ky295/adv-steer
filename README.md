@@ -30,15 +30,15 @@
 
 ## Dependencies
 
-```
-pip install .
-```
-
-Or, with [uv](https://docs.astral.sh/uv/) (dependencies managed automatically)
+With [uv](https://docs.astral.sh/uv/) (dependencies managed automatically) - recommended for faster install and better reproducibility
 ```
 uv run {filename.py}
 ```
 
+**Or**, create a venv and install with pip:
+```
+pip install .
+```
 To install development dependencies (ruff and ty),
 ```
 pip install -e ".[dev]"
