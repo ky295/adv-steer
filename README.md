@@ -36,7 +36,7 @@ pip install -e ".[dev]"
 (if you install with pip, just use `python` rather than `uv run python` for the instructions below)
 
 > [!IMPORTANT]  
-> This codebase requires access to at least one GPU with a minimum of ~32 GB VRAM available, and a CUDA `12.x` installed.
+> This codebase requires access to at least one GPU with a minimum of ~32 GB VRAM available, and CUDA `12.x` installed.
 
 
 ##  Dataset creation
