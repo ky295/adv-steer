@@ -7,7 +7,7 @@
 
 <br>
 <div align="center">
-  <img src="figures/example.png" width="800"/>
+  <img src="figures/example_arrow.png" width="800"/>
 </div>
 
 
