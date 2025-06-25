@@ -44,6 +44,8 @@ To install development dependencies (ruff and ty),
 pip install -e ".[dev]"
 ```
 
+> [!IMPORTANT]  
+> This codebase requires access to at least one GPU with a minimum of ~21 GB VRAM available, and a CUDA `12.x` installed.
 
 
 ##  Dataset creation
@@ -88,7 +90,7 @@ You can now determine which layer is best at separating the transformer residual
 
 For the layer determined using PCA, you can train a logistic regression classifier using `probing/logistic_regression.ipynb`.
 
-In `probing/create_ortho_model.py`, we can calculate the caution direction using the difference of means between the activations from layer 18. We can then implement the intervention by directly orthogonalising the weight matrices that write to the residual stream with respect to the caution direction $\widehat{r}$:
+In `probing/create_ortho_model.py`, we can calculate the caution direction using the difference of means between the activations from layer 18. We can then implement the intervention by directly orthogonalizing the weight matrices that write to the residual stream with respect to the caution direction $\widehat{r}$:
 
 $$W_{\text{out}}' \leftarrow W_{\text{out}} - \widehat{r}\widehat{r}^{\mathsf{T}} W_{\text{out}}$$
 
