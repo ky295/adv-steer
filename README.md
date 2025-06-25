@@ -1,4 +1,4 @@
-# Adversarial Manipulation of Chain-of-Thought
+# Adversarial Manipulation of Reasoning Models using Internal Representations
 
 > [!CAUTION]
 > This repository contains datasets with offensive content and code to produce a jailbroken (unaligned) reasoning model.
