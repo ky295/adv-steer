@@ -7,24 +7,24 @@
 
 ## Related materials 
 **Exploitation of linear representation hypothesis**
-- (Zou et al., 2023a) Representation Engineering: A top-down approach to AI transparency
-- (Zou et al., 2023b) Universal and Transferable Adversarial Attacks  on Aligned Language Models
-- (Arditi et al., 2024) Refusal in Language Models Is Mediated by a Single Direction
-- (Huang et al., 2024) Stronger Universal and Transfer Attacks by Suppressing Refusals
-- (Lin et al., 2024) Towards Understanding Jailbreak Attacks in LLMs: A Representation Space Analysis
-- (Turner et al., 2024) Steering Language Models with Activation Engineering
-- (Thompson et al., 2024a) Fluent Dreaming for Language Models
-- (Thompson et al., 2024b) FLRT: Fluent Student Teacher Redteaming
+- (Zou et al., 2023a) [Representation Engineering: A top-down approach to AI transparency](https://arxiv.org/abs/2310.01405)
+- (Zou et al., 2023b) [Universal and Transferable Adversarial Attacks on Aligned Language Models](https://arxiv.org/abs/2307.15043)
+- (Arditi et al., 2024) [Refusal in Language Models Is Mediated by a Single Direction](https://arxiv.org/abs/2406.11717)
+- (Huang et al., 2024) [Stronger Universal and Transfer Attacks by Suppressing Refusals](https://openreview.net/forum?id=eIBWRAbhND)
+- (Lin et al., 2024) [Towards Understanding Jailbreak Attacks in LLMs: A Representation Space Analysis](https://arxiv.org/abs/2406.10794)
+- (Turner et al., 2024) [Steering Language Models with Activation Engineering](https://arxiv.org/abs/2308.10248)
+- (Thompson et al., 2024a) [Fluent Dreaming for Language Models](https://arxiv.org/abs/2407.17447)
+- (Thompson et al., 2024b) [FLRT: Fluent Student Teacher Redteaming](https://arxiv.org/abs/2407.17447)
 
 **RL reward hacking/ unfaithfulness**
-- (Denison et al., 2024) Sycophancy to Subterfuge: Investigating Reward Tampering in Language Models
-- (McKee-Reid et al., 2024) Honesty to Subterfuge: In-context Reinforcement Learning Can Make Honest Models Reward Hack
-- (Greenblatt et al., 2024) Alignment Faking in Large Language Models
+- (Denison et al., 2024) [Sycophancy to Subterfuge: Investigating Reward Tampering in Language Models](https://arxiv.org/abs/2406.10162)
+- (McKee-Reid et al., 2024) [Honesty to Subterfuge: In-context Reinforcement Learning Can Make Honest Models Reward Hack](https://arxiv.org/abs/2410.06491)
+- (Greenblatt et al., 2024) [Alignment Faking in Large Language Models](https://arxiv.org/abs/2412.14093)
 
 **Chain-of-thought reasoning**
-- (Wei et al., 2023) Chain-of-Thought Prompting Elicits Reasoning in Large Language Models
-- (Yeo et al., 2025) Demystifying Long Chain-of-Thought Reasoning in LLMs
-- (DeepSeek-AI et al., 2025) DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning
+- (Wei et al., 2023) [Chain-of-Thought Prompting Elicits Reasoning in Large Language Models](https://arxiv.org/abs/2201.11903)
+- (Yeo et al., 2025) [Demystifying Long Chain-of-Thought Reasoning in LLMs](https://arxiv.org/abs/2502.03373)
+- (DeepSeek-AI et al., 2025) [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning](https://arxiv.org/abs/2501.12948)
 
 ---
 
