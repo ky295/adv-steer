@@ -1,5 +1,5 @@
 [project]
-name = "adv-steer"
+name = "reasoning-manipulation"
 version = "0.1.0"
 description = "Adversarial Manipulation of Reasoning Models using Internal Representations"
 authors = [

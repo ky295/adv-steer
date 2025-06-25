@@ -27,7 +27,7 @@ wheels = [
 ]
 
 [[package]]
-name = "adv-steer"
+name = "reasoning-manipulation"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
