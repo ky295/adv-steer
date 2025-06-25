@@ -35,7 +35,7 @@ With [uv](https://docs.astral.sh/uv/) (dependencies managed automatically) - rec
 uv run {filename.py}
 ```
 
-**Or**, create a venv and install with pip:
+**Or**, create a venv and explicitly install local module and dependencies with pip:
 ```
 pip install .
 ```
