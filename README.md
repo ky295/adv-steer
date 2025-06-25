@@ -137,8 +137,8 @@ To run a standard attack:
 uv run attack/run_experiments.py --beta 0.5
 ```
 
-**Optional flags for `run_experiments.py`**
-- `--beta`: Refusal beta value (required)
+**Configuration flags for `run_experiments.py`**
+- `--beta`: Refusal beta value (**required**), $\beta \in [0, 1]$ 
 - `--num-target-tokens`: Number of tokens for token forcing (default: `20`)
 - `--num-refusal-tokens`: Number of tokens for refusal direction (default: `45`)
 - `--refusal-layer-idx`: Layer index for refusal vector (default: `17`)
