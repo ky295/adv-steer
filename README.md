@@ -21,7 +21,7 @@ cd reasoning-manipulation
 
 **UV**
 
-With [uv](https://docs.astral.sh/uv/), dependencies are managed automatically and no specific install step is needed (other than `uv` itself. We recommended this for faster installations and better reproducibility. 
+With [uv](https://docs.astral.sh/uv/), dependencies are managed automatically and no specific install step is needed (other than `uv` itself). We recommended this for faster installations and better reproducibility. 
 - Run a python file with `uv run {filename.py}`
 - Use a module with `uv run python -m MODULE_PATH`
 
@@ -37,7 +37,7 @@ To install development dependencies (`ruff` and `ty`),
 ```
 pip install -e ".[dev]"
 ```
-(if you install with pip, just use `python` rather than `uv run python` for the instructions below)
+- (if you install with pip, just use `python` rather than `uv run python` for the instructions below)
 
 > [!IMPORTANT]  
 > This codebase requires access to at least one GPU with a minimum of ~32 GB VRAM available, and CUDA `12.x` installed.
