@@ -420,3 +420,6 @@ attack/wandb/
 
 .ruff_cache/
 *.ruff_cache
+
+github_setup.sh
+setup.sh
