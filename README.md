@@ -5,7 +5,6 @@
 > 
 > It is intended **only** for research purposes. 
 
-<br>
 <div align="center">
   <img src="figures/example_arrow.png" width="800"/>
 </div>
@@ -89,6 +88,10 @@ $$W_{\text{out}}' \leftarrow W_{\text{out}} - \widehat{r}\widehat{r}^{\mathsf{T}
 We can then use the `probing/ortho_csv_generation.py` script to save a .csv file of the prompt, orthogonalised response pair using prompts from `cautious.csv`.
 
 Using `probing/ortho_results.ipynb`, we can compare StrongREJECT fine-tuned evaluator scores before and after applying the weight orthogonalisation using the caution direction.
+
+<div align="center">
+  <img src="figures/covid_conspiracy.png" width="750"/>
+</div>
 
 <!-- **Example orthogonalized output**
 > **Prompt:**
