@@ -73,7 +73,7 @@ uv run python -m probing.activations --layers 15,19,23,27,31 --dataset_path data
 ```
 
 <div align="center">
-  <img src="figures/dataset_visualisation.png" width="600"/>
+  <img src="figures/dataset_visualisation_transparent.png" width="600"/>
 </div>
 
 You can now determine which layer is best at separating the transformer residual stream activations for the cautious/non-cautious datasets by computing PCA plots using `probing/visualise_pca.ipynb`.
