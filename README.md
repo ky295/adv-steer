@@ -148,7 +148,7 @@ config = GCGConfig(beta=0.5, num_steps=100, ...)
 results = run(config)
 ```
 
-See [attack/gcg.py#L46](attack/gcg.py#L46) for available `GCGConfig` options.
+See [attack/gcg.py](attack/gcg.py#L47) for available `GCGConfig` options.
 
 <br>
 <br>
