@@ -17,15 +17,19 @@ git clone git@github.com:ky295/reasoning-manipulation.git
 cd reasoning-manipulation
 ```
 
-**Install dependencies**
+**Getting started**
 
-With [uv](https://docs.astral.sh/uv/) (dependencies managed automatically) - **recommended** for faster install and better reproducibility
-```
-uv run {filename.py}
-```
+**UV**
+
+With [uv](https://docs.astral.sh/uv/), dependencies are managed automatically and no specific install step is needed (other than `uv` itself. We recommended this for faster installations and better reproducibility. 
+- Run a python file with `uv run {filename.py}`
+- Use a module with `uv run python -m MODULE_PATH`
+
 <br>
 
-**Or**, create a venv and explicitly install local module and dependencies with pip:
+**Pip**
+
+Alternatively, create a venv and explicitly install local module and dependencies with pip:
 ```
 pip install .
 ```
