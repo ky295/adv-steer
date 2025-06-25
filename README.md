@@ -125,7 +125,7 @@ Using `probing/ortho_results.ipynb`, we can compare StrongREJECT fine-tuned eval
 > ...
 >
 > ---
-> *The baseline reasoning model is DeepSeek-R1-Distill-Llama-8B, and the toxified reasoning model is the same model but with the "caution" direction ablated from its residual stream.*
+> *The baseline reasoning model is `DeepSeek-R1-Distill-Llama-8B`, and the toxified reasoning model is the same model but with the "caution" [direction](cautious_dir/) ablated from its residual stream.*
 
 ## Prompt-based Attacks
 

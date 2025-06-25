@@ -1,6 +1,5 @@
 """
-A script to run evaluation experiments for GCG / GCG+IRIS attacks against Deepseek's R1 model.
-Optimized version with per-worker model loading to prevent CUDA OOM.
+A script to run evaluation experiments for GCG / GCG+IRIS attacks against chain-of-thought/reasoning models.
 """
 
 # Import nanogcg (attack) module 
@@ -18,16 +17,19 @@ import os
 import time
 import traceback
 from typing import Dict, List, Tuple
+import getpass
 
 import pandas as pd
 import torch
 
+# suppres non-determinism warning from flash attention
 import warnings
 warnings.filterwarnings("ignore", message="Flash Attention defaults to a non-deterministic algorithm")
 
-# Set HF cache location before imports
-hf_cache = "/scratch/etheridge/huggingface"
+# Set HF cache location before imports, if space on project disk is limited
+hf_cache = f"/scratch/{getpass.getuser()}/huggingface"
 os.environ["HF_HOME"] = hf_cache
+
 os.environ["TOKENIZERS_PARALLELISM"] = (
     "false"  # Disable tokenizer parallelism to avoid fork warnings
 )
