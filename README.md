@@ -43,9 +43,10 @@ To install development dependencies (ruff and ty),
 ```
 pip install -e ".[dev]"
 ```
+(if you install with pip, just use `python` rather than `uv run python` for the instructions below)
 
 > [!IMPORTANT]  
-> This codebase requires access to at least one GPU with a minimum of ~21 GB VRAM available, and a CUDA `12.x` installed.
+> This codebase requires access to at least one GPU with a minimum of ~32 GB VRAM available, and a CUDA `12.x` installed.
 
 
 ##  Dataset creation
@@ -53,13 +54,13 @@ pip install -e ".[dev]"
 `utils/dataset_alpaca.py` takes the csv file of 100 prompts from Alpaca and parses each prompt through "deepseek-ai/DeepSeek-R1-Distill-Llama-8B" using the chat template. It stores the prompt, response pair in an output csv file.
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python -m utils.dataset_alpaca --input_csv dataset/alpaca_instructions_100.csv --output_csv dataset/alpaca_reasoning_template.csv
+uv run python -m utils.dataset_alpaca --input_csv dataset/alpaca_instructions_100.csv --output_csv dataset/alpaca_reasoning_template.csv
 ```
 
 `utils/dataset_strong_reject.py` loads the StrongREJECT dataset from https://raw.githubusercontent.com/alexandrasouly/strongreject/main/strongreject_dataset/strongreject_dataset.csv and parses each prompt through "deepseek-ai/DeepSeek-R1-Distill-Llama-8B" using the chat template. It stores the prompt, response pair in an output csv file.
 
 ```
-CUDA_VISIBLE_DEVICES=0 python -m utils.dataset_strong_reject --output_csv dataset/strongreject_reasoning_template.csv
+uv run python -m utils.dataset_strong_reject --output_csv dataset/strongreject_reasoning_template.csv
 ```
 
 TODO: Could merge `utils/dataset_strong_reject.py` and `utils/dataset_alpaca.py` and add batch functionality to them. Model should also be parsed as an argument.
