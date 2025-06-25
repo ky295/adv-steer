@@ -153,9 +153,9 @@ uv run attack/run_experiments.py --beta 0.5
 
 See `uv run attack/run_experiments.py --help` for all options.
 
-### Using GCG as a module
+### Using as a module
 
-You can also use GCG programmatically:
+You can also use the attack programmatically, importing as a python module:
 
 ```python
 from attack.gcg import GCGConfig, run
