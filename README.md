@@ -139,17 +139,17 @@ uv run attack/run_experiments.py --beta 0.5
 
 **Optional flags for `run_experiments.py`**
 - `--beta`: Refusal beta value (required)
-- `--num-target-tokens`: Number of tokens for token forcing (default: 20)
-- `--num-refusal-tokens`: Number of tokens for refusal direction (default: 45)
-- `--refusal-layer-idx`: Layer index for refusal vector (default: 17)
-- `--num-steps`: Number of optimization steps (default: 150)
-- `--num-gpus`: Number of GPUs to use (default: 4)
-- `--runs-per-gpu`: Number of runs per GPU (default: 1)
-- `--input-csv`: Input CSV file path
-- `--results-dir`: Directory to save results
-- `--dry-run`: Print experiment plan without running
-- `--verbose`: Enable verbose logging
-- `--target-override`: Use a fixed target string for all prompts
+- `--num-target-tokens`: Number of tokens for token forcing (default: `20`)
+- `--num-refusal-tokens`: Number of tokens for refusal direction (default: `45`)
+- `--refusal-layer-idx`: Layer index for refusal vector (default: `17`)
+- `--num-steps`: Number of optimization steps (default: `150`)
+- `--num-gpus`: Number of GPUs to use (default: `4`)
+- `--runs-per-gpu`: Number of runs per GPU (default: `1`)
+- `--input-csv`: Input CSV file path, relative to `/attack` (default `../dataset/orthogonalized_outputs_cot150_2048.csv`)
+- `--results-dir`: Directory to save results, relative to `/attack` (default: `results/`)
+- `--dry-run`: Print experiment plan without running anything
+- `--verbose`: Increase logging verbosity
+- `--target-override`: Use a fixed target string for all prompts (`</think>\\nSure, here is`)
 
 See `uv run attack/run_experiments.py --help` for all options.
 
