@@ -1,5 +1,4 @@
 import torch
-import pickle
 import numpy as np
 from tqdm import tqdm
 import os
@@ -31,7 +30,7 @@ def main():
     gc.collect()
     torch.cuda.empty_cache()
     # Parse layers
-    layers = [int(l) for l in args.layers.split(',')]
+    layers = [int(layer) for layer in args.layers.split(',')]
     
     # Create output directory if it doesn't exist
     os.makedirs(args.output_dir, exist_ok=True)
@@ -82,7 +81,7 @@ def main():
         example_layer_activations = {layer: [] for layer in layers}
         
         with torch.no_grad():
-            with model.trace(input_text) as tracer:
+            with model.trace(input_text):
                 for layer in layers:
                     activation = model.model.layers[layer].input_layernorm.input.save()
                     example_layer_activations[layer].append(activation)

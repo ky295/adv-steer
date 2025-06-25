@@ -23,4 +23,4 @@ with open('alpaca_instructions_100.csv', 'w', newline='', encoding='utf-8') as f
     for instruction in sampled_instructions:
         writer.writerow([instruction])
 
-print(f"CSV file created with 100 instructions from the alpaca dataset")
+print("CSV file created with 100 instructions from the alpaca dataset")

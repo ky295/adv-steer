@@ -1,4 +1,3 @@
-import os
 import argparse
 import pandas as pd
 from vllm import LLM, SamplingParams

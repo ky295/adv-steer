@@ -12,8 +12,6 @@ import os
 import gc
 import pandas as pd
 from nnsight import LanguageModel
-from matplotlib.ticker import MaxNLocator
-from tqdm import tqdm
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Visualize activation similarities")
@@ -68,7 +66,7 @@ def get_activations(model, row, layer=18):
 
     # Trace the model to get activations
     with torch.no_grad():
-            with model.trace(input_text) as tracer:
+            with model.trace(input_text):
                 activation = model.model.layers[layer].input_layernorm.input.save()
     
     print(f"Activation tensor shape: {activation.shape}")
@@ -80,7 +78,7 @@ def get_activations(model, row, layer=18):
         seq_len = len(input_text)
         hidden_size = 4096  # Expected hidden size for DeepSeek-R1-Distill-Llama-8B
         
-        print(f"Tensor appears to be flattened. Attempting reshape...")
+        print("Tensor appears to be flattened. Attempting reshape...")
         print(f"Expected shape: [{seq_len}, {hidden_size}]")
         
         # Check if reshaping is possible
@@ -88,7 +86,7 @@ def get_activations(model, row, layer=18):
             activation = activation.reshape(seq_len, hidden_size)
             print(f"Reshaped tensor to: {activation.shape}")
         else:
-            print(f"WARNING: Cannot reshape tensor to expected dimensions.")
+            print("WARNING: Cannot reshape tensor to expected dimensions.")
             print(f"Tensor has {activation.numel()} elements, but expected {seq_len * hidden_size}")
     
     # Clear cache after processing
@@ -183,7 +181,7 @@ def main():
     prompt = row.forbidden_prompt
     print(prompt)
 
-    if args.ortho == True: 
+    if args.ortho: 
         model_name = "kureha295/ortho_model"
         print(f"Initializing model {model_name}")
     else:

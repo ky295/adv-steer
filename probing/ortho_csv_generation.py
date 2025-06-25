@@ -1,11 +1,7 @@
-import os
 import argparse
-import numpy as np
 import torch
-import einops
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import gc
-import csv
 import pandas as pd
 
 # CUDA_VISIBLE_DEVICES=0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python -m probing.ortho_csv_generation
