@@ -19,7 +19,7 @@ cd reasoning-manipulation
 
 **Getting started**
 
-**UV**
+**uv**
 
 With [uv](https://docs.astral.sh/uv/), dependencies are managed automatically and no specific install step is needed (other than `uv` itself). We recommended this for faster installations and better reproducibility. 
 - Run a python file with `uv run {filename.py}`
