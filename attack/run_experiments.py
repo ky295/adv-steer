@@ -4,26 +4,28 @@ A script to run evaluation experiments for GCG / GCG+IRIS attacks against chain-
 
 # Import nanogcg (attack) module 
 import sys
+
 sys.path.append("..")  
 sys.path.append(".")
-from attack import run, GCGConfig 
-
 import argparse
 import datetime
 import fcntl
 import gc
+import getpass
 import multiprocessing as mp
 import os
 import time
 import traceback
+# suppres non-determinism warning from flash attention
+import warnings
 from typing import Dict, List, Tuple
-import getpass
 
 import pandas as pd
 import torch
+import transformers
 
-# suppres non-determinism warning from flash attention
-import warnings
+from attack import GCGConfig, GCGResult, run
+
 warnings.filterwarnings("ignore", message="Flash Attention defaults to a non-deterministic algorithm")
 
 # Set HF cache location before imports, if space on project disk is limited
@@ -61,9 +63,9 @@ OVERRIDE_TARGET_STRING = "</think>\n\nSure"
 
 
 # Global variables for worker process
-_worker_model = None
-_worker_tokenizer = None
-_worker_gpu_id = None
+_worker_model: transformers.PreTrainedModel
+_worker_tokenizer: transformers.PreTrainedTokenizer
+_worker_gpu_id: int
 
 
 def worker_init(gpu_id: int):
@@ -420,7 +422,7 @@ def run_single_experiment(args: Tuple) -> Dict:
         start_time = time.time()
 
         # Use cached model and tokenizer
-        result = run(
+        result: GCGResult = run(
             _worker_model,
             _worker_tokenizer,
             messages,
@@ -628,6 +630,7 @@ def main():
 
     # Load and preprocess data
     input_df = load_input_data(args.input_csv)
+    assert input_df is not None, "Failed to load input data"
     input_df = preprocess_target_strings(
         input_df, args.num_target_tokens, args.target_override
     )

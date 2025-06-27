@@ -4,14 +4,16 @@ and per-token activations from layer 18 of DeepSeek-R1-Distill-Llama-8B.
 """
 # CUDA_VISIBLE_DEVICES=0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python -m probing.analyse_vectors --index 18 --flag incautious
 import argparse
-import torch
-import matplotlib.pyplot as plt
-import seaborn as sns
-import numpy as np
-import os
 import gc
+import os
+
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+import seaborn as sns
+import torch
 from nnsight import LanguageModel
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Visualize activation similarities")

@@ -22,8 +22,8 @@ cd reasoning-manipulation
 **uv**
 
 With [uv](https://docs.astral.sh/uv/), dependencies are managed automatically and no specific install step is needed (other than `uv` itself). We recommended this for faster installations and better reproducibility. 
-- Run a python file with `uv run {filename.py}`
-- Use a module with `uv run python -m MODULE_PATH`
+- Run a python file with `uv run {FILENAME.py}`
+- Use a module with `uv run python -m {MODULE_PATH}`
 
 <br>
 
@@ -33,7 +33,7 @@ Alternatively, create a venv and explicitly install local module and dependencie
 ```
 pip install .
 ```
-To install development dependencies (`ruff` and `ty`),
+To install development dependencies (`ruff`, `ty`, and `isort`),
 ```
 pip install -e ".[dev]"
 ```
@@ -77,7 +77,7 @@ uv run python -m probing.activations --layers 15,19,23,27,31 --dataset_path data
 ```
 
 <div align="center">
-  <img src="figures/dataset_visualisation_transparent.png" width="600"/>
+  <img src="figures/dataset_visualisation_transparent.png" width="780"/>
 </div>
 
 You can now determine which layer is best at separating the transformer residual stream activations for the cautious/non-cautious datasets by computing PCA plots using `probing/visualise_pca.ipynb`.

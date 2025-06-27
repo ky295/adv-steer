@@ -1,11 +1,12 @@
-import torch
-import numpy as np
-from tqdm import tqdm
-import os
-from nnsight import LanguageModel
 import argparse
-import pandas as pd
 import gc
+import os
+
+import numpy as np
+import pandas as pd
+import torch
+from nnsight import LanguageModel
+from tqdm import tqdm
 
 # Example usage
 # CUDA_VISIBLE_DEVICES=0 python -m probing.activations --layers 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 --dataset_path dataset/non_cautious.csv --output_dir activations/prompt/ --type prompt

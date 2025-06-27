@@ -1,6 +1,7 @@
-import json
 import csv
+import json
 import random
+
 ## alpaca_data_cleaned.json from https://github.com/gururise/AlpacaDataCleaned
 
 # Step 1: Read the JSON file

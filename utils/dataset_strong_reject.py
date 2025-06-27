@@ -1,12 +1,12 @@
 import argparse
-import os
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from datasets import load_dataset
-from tqdm import tqdm
 import csv
 import gc
+import os
 
+import torch
+from datasets import load_dataset
+from tqdm import tqdm
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # Example usage:
 # CUDA_VISIBLE_DEVICES=0 python -m utils.dataset_strong_reject \

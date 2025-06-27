@@ -16,5 +16,6 @@ For more detailed information, see the GitHub repository: https://github.com/Gra
 """
 
 from .gcg import GCGConfig as GCGConfig
+from .gcg import GCGResult as GCGResult
 from .gcg import ProbeSamplingConfig as ProbeSamplingConfig
 from .gcg import run as run
