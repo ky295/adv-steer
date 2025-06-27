@@ -22,8 +22,8 @@ cd reasoning-manipulation
 **UV**
 
 With [uv](https://docs.astral.sh/uv/), dependencies are managed automatically and no specific install step is needed (other than `uv` itself). We recommended this for faster installations and better reproducibility. 
-- Run a python file with `uv run {filename.py}`
-- Use a module with `uv run python -m MODULE_PATH`
+- Run a python file with `uv run {FILENAME.py}`
+- Use a module with `uv run python -m {MODULE_PATH}`
 
 <br>
 
@@ -33,7 +33,7 @@ Alternatively, create a venv and explicitly install local module and dependencie
 ```
 pip install .
 ```
-To install development dependencies (`ruff` and `ty`),
+To install development dependencies (`ruff`, `ty`, and `isort`),
 ```
 pip install -e ".[dev]"
 ```
@@ -75,7 +75,7 @@ uv run python -m probing.activations --layers 15,19,23,27,31 --dataset_path data
 ```
 
 <div align="center">
-  <img src="figures/dataset_visualisation_transparent.png" width="600"/>
+  <img src="figures/dataset_visualisation_transparent.png" width="780"/>
 </div>
 
 You can now determine which layer is best at separating the transformer residual stream activations for the cautious/non-cautious datasets by computing PCA plots using `probing/visualise_pca.ipynb`.
@@ -91,6 +91,7 @@ We can then use the `probing/ortho_csv_generation.py` script to save a .csv file
 
 Using `probing/intervention_results.ipynb`, we can compare StrongREJECT fine-tuned evaluator scores before and after applying the weight orthogonalisation using the caution direction.
 
+**Example generations from standard verus orthogonalized model:**
 <div align="center">
   <img src="figures/covid_conspiracy.png" width="750"/>
 </div>
@@ -139,7 +140,20 @@ See [attack/gcg.py](attack/gcg.py#L47) for available `GCGConfig` options.
 <br>
 <br>
 
-## Related materials 
+---
+If you use this code in your work, we would appreciate you using the following citation:
+
+__update when we have proper bibtex!__
+```
+@unpublished{
+    yamaguchi2025reasoning,
+    title={Adversarial Manipulation of Reasoning Models using Internal Representations},
+    author={Kureha Yamaguchi and Benjamin Etheridge and Andy Arditi},
+    year={2025},
+}
+```
+
+<!-- ## Related materials 
 **Exploitation of linear representation hypothesis**
 - (Zou et al., 2023a) [Representation Engineering: A top-down approach to AI transparency](https://arxiv.org/abs/2310.01405)
 - (Zou et al., 2023b) [Universal and Transferable Adversarial Attacks on Aligned Language Models](https://arxiv.org/abs/2307.15043)
@@ -158,5 +172,5 @@ See [attack/gcg.py](attack/gcg.py#L47) for available `GCGConfig` options.
 **Chain-of-thought reasoning**
 - (Wei et al., 2023) [Chain-of-Thought Prompting Elicits Reasoning in Large Language Models](https://arxiv.org/abs/2201.11903)
 - (Yeo et al., 2025) [Demystifying Long Chain-of-Thought Reasoning in LLMs](https://arxiv.org/abs/2502.03373)
-- (DeepSeek-AI, 2025) [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning](https://arxiv.org/abs/2501.12948)
+- (DeepSeek-AI, 2025) [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning](https://arxiv.org/abs/2501.12948) -->
 

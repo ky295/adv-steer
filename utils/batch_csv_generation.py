@@ -1,9 +1,10 @@
 import argparse
-import pandas as pd
-from vllm import LLM, SamplingParams
-from transformers import AutoTokenizer
 import gc
 from typing import List
+
+import pandas as pd
+from transformers import AutoTokenizer
+from vllm import LLM, SamplingParams
 
 # CUDA_VISIBLE_DEVICES=0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python -m utils.batch_csv_generation --input_csv dataset/cautious_eval.csv --output_csv dataset/validate/cautious_eval_output_vllm.csv
 

@@ -2,23 +2,21 @@ import atexit
 import copy
 import gc
 import logging
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict, dataclass, field
 from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import transformers
+import wandb
 from torch import Tensor
 from tqdm import tqdm
 from transformers import set_seed
 from transformers.cache_utils import DynamicCache
 
-import wandb
 from attack.utils import (INIT_CHARS, configure_pad_token,
-                           find_executable_batch_size, get_nonascii_toks,
-                           mellowmax)
-
-
+                          find_executable_batch_size, get_nonascii_toks,
+                          mellowmax)
 
 logger: logging.Logger = logging.getLogger("nanogcg")
 if not logger.hasHandlers():

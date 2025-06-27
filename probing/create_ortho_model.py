@@ -1,9 +1,10 @@
-import os
 import argparse
+import gc
+import os
+
 import numpy as np
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-import gc
 
 # CUDA_VISIBLE_DEVICES=0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python -m probing.create_ortho_model
 
