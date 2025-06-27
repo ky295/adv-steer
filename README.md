@@ -93,6 +93,7 @@ We can then use the `probing/ortho_csv_generation.py` script to save a .csv file
 
 Using `probing/ortho_results.ipynb`, we can compare StrongREJECT fine-tuned evaluator scores before and after applying the weight orthogonalisation using the caution direction.
 
+**Example generations from standard verus orthogonalized model:**
 <div align="center">
   <img src="figures/covid_conspiracy.png" width="750"/>
 </div>
@@ -143,7 +144,19 @@ See [attack/gcg.py](attack/gcg.py#L47) for available `GCGConfig` options.
 <br>
 <br>
 
-## Related materials 
+---
+If you use this code in your work, we would appreciate you using the following citation:
+<!-- update when we have proper bibtex! -->
+```
+@unpublished{
+    yamaguchi2025reasoning,
+    title={Adversarial Manipulation of Reasoning Models using Internal Representations},
+    author={Kureha Yamaguchi and Benjamin Etheridge and Andy Arditi},
+    year={2025},
+}
+```
+
+<!-- ## Related materials 
 **Exploitation of linear representation hypothesis**
 - (Zou et al., 2023a) [Representation Engineering: A top-down approach to AI transparency](https://arxiv.org/abs/2310.01405)
 - (Zou et al., 2023b) [Universal and Transferable Adversarial Attacks on Aligned Language Models](https://arxiv.org/abs/2307.15043)
@@ -162,5 +175,5 @@ See [attack/gcg.py](attack/gcg.py#L47) for available `GCGConfig` options.
 **Chain-of-thought reasoning**
 - (Wei et al., 2023) [Chain-of-Thought Prompting Elicits Reasoning in Large Language Models](https://arxiv.org/abs/2201.11903)
 - (Yeo et al., 2025) [Demystifying Long Chain-of-Thought Reasoning in LLMs](https://arxiv.org/abs/2502.03373)
-- (DeepSeek-AI, 2025) [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning](https://arxiv.org/abs/2501.12948)
+- (DeepSeek-AI, 2025) [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning](https://arxiv.org/abs/2501.12948) -->
 
