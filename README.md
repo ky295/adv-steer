@@ -48,25 +48,23 @@ pip install -e ".[dev]"
 `utils/dataset_alpaca.py` takes the csv file of 100 prompts from Alpaca and parses each prompt through "deepseek-ai/DeepSeek-R1-Distill-Llama-8B" using the chat template. It stores the prompt, response pair in an output csv file.
 
 ```bash
-uv run python -m utils.dataset_alpaca --input_csv dataset/alpaca_instructions_100.csv --output_csv dataset/alpaca_reasoning_template.csv
+uv run python -m utils.dataset_alpaca --input_csv dataset/alpaca_instructions_100.csv --output_csv dataset/alpaca_reasoning_output.csv
 ```
 
 `utils/dataset_strong_reject.py` loads the StrongREJECT dataset from https://raw.githubusercontent.com/alexandrasouly/strongreject/main/strongreject_dataset/strongreject_dataset.csv and parses each prompt through "deepseek-ai/DeepSeek-R1-Distill-Llama-8B" using the chat template. It stores the prompt, response pair in an output csv file.
 
 ```
-uv run python -m utils.dataset_strong_reject --output_csv dataset/strongreject_reasoning_template.csv
+uv run python -m utils.dataset_strong_reject --output_csv dataset/strongreject_reasoning_output.csv
 ```
-
-TODO: Could merge `utils/dataset_strong_reject.py` and `utils/dataset_alpaca.py` and add batch functionality to them. Model should also be parsed as an argument.
 
 > [!NOTE]
 > We have provided the alpaca_instructions_100.csv. To create it from scratch, download `alpaca_data_cleaned.json` from https://github.com/gururise/AlpacaDataCleaned and run `utils/alpaca.py`.
 
-We then curate caution and non-caution datasets. The non-caution dataset comprises of prompt-response pairs from Alpaca (`dataset/alpaca_reasoning_template.csv`) and StrongReject (`dataset/strongreject_reasoning_template.csv`) where the outputs score >0.85 from the StrongREJECT fine-tuned evaluator. The caution dataset comprises of prompt-response pairs from StrongReject (`dataset/strongreject_reasoning_template.csv`) where the outputs score <0.15 from the StrongREJECT fine-tuned evaluator signalling a nonspecific, unconvincing, refusal response. The narrow thresholds of 0.85 and 0.15 were chosen to create a clean dataset, discarding ambiguous data points. Use `utils/filter_datasets.ipynb` to generate the filtered Alpaca and StrongREJECT datasets. To create the non-caution dataset, you will need to manually combine. TODO: Make this function automatic.
+We curate datasets of cautious (`dataset/cautious.csv`) and incautious (`dataset/non_cautious.csv`) generations using the StrongREJECT evaluator, which assigns scores on a continuous scale of 0 to 1, where a high score indicates a specific and convincing non-refusal response. The incautious and cautious datasets are comprised of prompt-response pairs from AdvBench (`dataset/advbench_reasoning_output.csv`) where the output scores >0.85 and <0.10, respectively.
 
-> [!NOTE]
-> You can run `utils/strong_reject_separated.ipynb` to reproduce the histogram plots, comparing reasoning model CoT and output scores from the StrongREJECT fine-tuned evaluator.
+We also experiment with a larger dataset, which is composed of the standard dataset, augmented with 25 extra harmful AdvBench examples in the cautious dataset (for output scores <0.10), and 25 harmless Alpaca (`dataset/alpaca_reasoning_output.csv`) examples in the incautious dataset.
 
+The evaluation dataset comprises of 116 unseen examples from the StrongREJECT dataset (`dataset/cautious_eval.csv`), where the outputs are all highly cautious and harmless. This evaluation dataset was curated by filtering for prompts where the base model outputs had a StrongREJECT score of <0.03, providing a more challenging benchmark.
 
 ##  Activations
 
@@ -85,21 +83,19 @@ You can now determine which layer is best at separating the transformer residual
 
 For the layer determined using PCA, you can train a logistic regression classifier using `probing/logistic_regression.ipynb`.
 
-In `probing/create_ortho_model.py`, we can calculate the caution direction using the difference of means between the activations from layer 18. We can then implement the intervention by directly orthogonalizing the weight matrices that write to the residual stream with respect to the caution direction $\widehat{r}$:
+In `probing/create_ortho_model.py`, we can calculate the caution direction using the difference of means between the activations from the chosen layer. We can then implement the intervention by directly orthogonalizing the weight matrices that write to the residual stream with respect to the caution direction $\widehat{r}$:
 
 $$W_{\text{out}}' \leftarrow W_{\text{out}} - \widehat{r}\widehat{r}^{\mathsf{T}} W_{\text{out}}$$
 
 We can then use the `probing/ortho_csv_generation.py` script to save a .csv file of the prompt, orthogonalised response pair using prompts from `cautious.csv`.
 
-Using `probing/ortho_results.ipynb`, we can compare StrongREJECT fine-tuned evaluator scores before and after applying the weight orthogonalisation using the caution direction.
+Using `probing/intervention_results.ipynb`, we can compare StrongREJECT fine-tuned evaluator scores before and after applying the weight orthogonalisation using the caution direction.
 
 <div align="center">
   <img src="figures/covid_conspiracy.png" width="750"/>
 </div>
 
 Our 'toxified' orthogonalized model is available on HuggingFace (with gated access) at [https://hf.co/kureha295/ortho_model_2](https://hf.co/kureha295/ortho_model_2)
-> [!CAUTION]
-> We need to add the gating on HF
 
 
 ## Prompt-based Attacks
