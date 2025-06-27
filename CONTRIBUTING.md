@@ -8,7 +8,7 @@ If using pip, you must do this explicitly with:
 pip install -e ".[dev]"
 ```
 
-## Before commiting code
+## Before commiting code / making a PR
 
 Run the following...
 

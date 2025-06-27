@@ -19,7 +19,7 @@ cd reasoning-manipulation
 
 **Getting started**
 
-**uv**
+**UV**
 
 With [uv](https://docs.astral.sh/uv/), dependencies are managed automatically and no specific install step is needed (other than `uv` itself). We recommended this for faster installations and better reproducibility. 
 - Run a python file with `uv run {FILENAME.py}`
@@ -146,7 +146,8 @@ See [attack/gcg.py](attack/gcg.py#L47) for available `GCGConfig` options.
 
 ---
 If you use this code in your work, we would appreciate you using the following citation:
-<!-- update when we have proper bibtex! -->
+
+__update when we have proper bibtex!__
 ```
 @unpublished{
     yamaguchi2025reasoning,
