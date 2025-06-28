@@ -413,10 +413,13 @@ archive/*
 
 probing/best_of_n.ipynb
 probing/vllm_results.ipynb
+probing/model/
 
 attack/__pycache__/
 attack/results*
 attack/wandb/
+
+
 
 .ruff_cache/
 *.ruff_cache

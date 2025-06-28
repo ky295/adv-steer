@@ -1,7 +1,7 @@
 # Adversarial Manipulation of Reasoning Models using Internal Representations
 > Kureha Yamaguchi, Benjamin Etheridge, Andy Arditi
 
-Code for our paper at the ICML 2025 Workshop on Reliable and Responsible Foundation Models
+*Accepted as a poster at the ICML 2025 Workshop on Reliable and Responsible Foundation Models.*
 
 > [!CAUTION]
 > This repository contains datasets with offensive content and code to produce a jailbroken (unaligned) reasoning model.
@@ -137,7 +137,7 @@ uv run -m attack.experiments --beta 0.5
 - `--verbose`: Increase logging verbosity
 - `--target-override`: Use a fixed target string for all prompts (`</think>\\nSure, here is`)
 
-See `uv run-m attack.experiments --help` for all options.
+See `uv run -m attack.experiments --help` for all options.
 
 ### Using as a module
 

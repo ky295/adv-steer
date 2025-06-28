@@ -28,4 +28,4 @@ Run the following...
     ```
 
 > [!NOTE]  
-> ToDo: Add these as pre-commit hooks
+> To do: Add these as pre-commit hooks
