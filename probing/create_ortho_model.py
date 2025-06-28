@@ -192,23 +192,22 @@ def main():
     
     # Calculate difference of means (cautious direction)
     cautious_dir = get_dir(cautious_mean_act, noncautious_mean_act)
-    # # Save the tensor to a .pt file
-    torch.save(cautious_dir, 'gcg/cautious_dir.pt')
-    print(f"Cautious direction shape: {cautious_dir.shape}")
+    # Save the tensor to a .pt file
+    # torch.save(cautious_dir, 'cautious_dir.pt')
+    # print(f"Cautious direction shape: {cautious_dir.shape}")
     
     # Free memory before orthogonalization
     del cautious_mean_act, noncautious_mean_act
     gc.collect()
     torch.cuda.empty_cache()
     
-    # # Orthogonalize model weights with respect to the cautious direction
-    # orthogonalized_model = orthogonalize_model_weights(model, cautious_dir)
-    # # Save the model in SafeTensors format
-    # orthogonalized_model.save_pretrained(
-    #     "probing/model",
-    #     safe_serialization=True  # This enables SafeTensors format
-    # )
-
+    # Orthogonalize model weights with respect to the cautious direction
+    orthogonalized_model = orthogonalize_model_weights(model, cautious_dir)
+    # Save the model in SafeTensors format
+    orthogonalized_model.save_pretrained(
+        "probing/model",
+        safe_serialization=True  # This enables SafeTensors format
+    )
 
 def run():
     main()
