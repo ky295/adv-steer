@@ -131,11 +131,11 @@ uv run -m attack.experiments --beta 0.5
 - `--num-steps`: Number of optimization steps (default: `150`)
 - `--num-gpus`: Number of GPUs to use (default: `4`)
 - `--runs-per-gpu`: Number of runs per GPU (default: `1`)
-- `--input-csv`: Input CSV file path, relative to `/attack` (default `../dataset/orthogonalized_outputs_cot150_2048.csv`)
-- `--results-dir`: Directory to save results, relative to `/attack` (default: `results/`)
+- `--input-csv`: Input CSV file path, relative to top level (default `dataset/orthogonalized_outputs_cot150_2048.csv`)
+- `--results-dir`: Directory to save results, relative to top level (default: `attack/results/`)
 - `--dry-run`: Print experiment plan without running anything
 - `--verbose`: Increase logging verbosity
-- `--target-override`: Use a fixed target string for all prompts (`</think>\\nSure, here is`)
+- `--target-override`: Use a fixed target string to try and skip CoT for all prompts (`</think>\\nSure, here is`)
 
 See `uv run -m attack.experiments --help` for all options.
 
