@@ -1,4 +1,7 @@
 # Adversarial Manipulation of Reasoning Models using Internal Representations
+> Kureha Yamaguchi, Benjamin Etheridge, Andy Arditi
+
+Code for our paper at the ICML 2025 Workshop on Reliable and Responsible Foundation Models
 
 > [!CAUTION]
 > This repository contains datasets with offensive content and code to produce a jailbroken (unaligned) reasoning model.
@@ -23,7 +26,7 @@ cd reasoning-manipulation
 
 With [uv](https://docs.astral.sh/uv/), dependencies are managed automatically and no specific install step is needed (other than `uv` itself). We recommended this for faster installations and better reproducibility. 
 - Run a python file with `uv run {FILENAME.py}`
-- Use a module with `uv run python -m {MODULE_PATH}`
+- Use a module with `uv run -m {MODULE_PATH}`
 
 <br>
 
@@ -37,7 +40,7 @@ To install development dependencies (`ruff`, `ty`, and `isort`),
 ```
 pip install -e ".[dev]"
 ```
-- (if you install with pip, just use `python` rather than `uv run python` for the instructions below)
+- (if you install with pip, just use `python` rather than `uv run` for the instructions below)
 
 > [!IMPORTANT]  
 > This codebase requires access to at least one GPU with a minimum of ~32 GB VRAM available, and CUDA `12.x` installed.
@@ -48,13 +51,13 @@ pip install -e ".[dev]"
 `utils/dataset_alpaca.py` takes the csv file of 100 prompts from Alpaca and parses each prompt through "deepseek-ai/DeepSeek-R1-Distill-Llama-8B" using the chat template. It stores the prompt, response pair in an output csv file.
 
 ```bash
-uv run python -m utils.dataset_alpaca --input_csv dataset/alpaca_instructions_100.csv --output_csv dataset/alpaca_reasoning_output.csv
+uv run -m utils.dataset_alpaca --input_csv dataset/alpaca_instructions_100.csv --output_csv dataset/alpaca_reasoning_output.csv
 ```
 
-`utils/dataset_strong_reject.py` loads the StrongREJECT dataset from https://raw.githubusercontent.com/alexandrasouly/strongreject/main/strongreject_dataset/strongreject_dataset.csv and parses each prompt through "deepseek-ai/DeepSeek-R1-Distill-Llama-8B" using the chat template. It stores the prompt, response pair in an output csv file.
+`utils/dataset_strong_reject.py` loads the StrongREJECT dataset from https://raw.githubusercontent.com/alexandrasouly/strongreject/main/strongreject_dataset/strongreject_dataset.csv and parses each prompt through `deepseek-ai/DeepSeek-R1-Distill-Llama-8B` using the chat template. It stores the prompt, response pair in an output csv file.
 
-```
-uv run python -m utils.dataset_strong_reject --output_csv dataset/strongreject_reasoning_output.csv
+```bash
+uv run -m utils.dataset_strong_reject --output_csv dataset/strongreject_reasoning_output.csv
 ```
 
 > [!NOTE]
@@ -72,8 +75,8 @@ The dataset
 
 Now that we have `dataset/cautious.csv` and `dataset/non_cautious.csv`, we can now run `probing/activations.py` in order to cache activations for a sweep of layers. This script takes the first 150 tokens (staying within the CoT) in the prompt-response example, computes activations at each token position, and then takes the average. This is repeated for each row in the dataset, for a sweep of layers. For the flag `--type`, select `cot` for 150 CoT tokens, or `baseline` for 3 tokens at the end of prompt or `prompt` for the whole prompt.
 
-```
-uv run  python -m probing.activations --layers 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 --dataset_path dataset/non_cautious.csv --output_dir activations/cot150/ --type cot
+```bash
+uv run  -m probing.activations --layers 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 --dataset_path dataset/non_cautious.csv --output_dir activations/cot150/ --type cot
 ```
 
 <div align="center">
@@ -90,14 +93,14 @@ In `probing/create_ortho_model.py`, we can calculate the caution direction using
 $$W_{\text{out}}' \leftarrow W_{\text{out}} - \widehat{r}\widehat{r}^{\mathsf{T}} W_{\text{out}}$$
 
 The orthogonalised model using acitvations at layer 17 from `activations/cot150_plus` can be created using:
-```
-uv run python -m probing.create_ortho_model --activations_dir 'activations/cot150_plus/' --layer 17 
+```bash
+uv run -m probing.create_ortho_model --activations_dir 'activations/cot150_plus/' --layer 17 
 ```
 
 After pushing the model to HF, you can then use the `probing/ortho_csv_generation.py` script to save a .csv file of the prompt, orthogonalised response pair using prompts from the evaluation dataset `dataset/cautious_eval.csv`. Here, replace 'kureha295/ortho_model' with your HF model.
 
-```
-uv run python -m probing.ortho_csv_generation --model_name 'kureha295/ortho_model' --input_csv 'dataset/cautious_eval.csv' --output_csv 'dataset/orthogonalized_outputs_2048.csv' --max_new_tokens 2048
+```bash
+uv run -m probing.ortho_csv_generation --model_name 'kureha295/ortho_model' --input_csv 'dataset/cautious_eval.csv' --output_csv 'dataset/orthogonalized_outputs_2048.csv' --max_new_tokens 2048
 ```
 
 Using `probing/intervention_results.ipynb`, we can compare StrongREJECT fine-tuned evaluator scores before and after applying the weight orthogonalisation using the caution direction.
@@ -117,10 +120,10 @@ This GCG-style implementation is adapted from GraySwanAI's [nanoGCG](https://git
 To run a standard attack:
 
 ```
-uv run attack/run_experiments.py --beta 0.5
+uv run -m attack.experiments --beta 0.5
 ```
 
-**Configuration flags for `run_experiments.py`**
+**Configuration flags for `experiments.py`**
 - `--beta`: Refusal beta value (**required**), $\beta \in [0, 1]$ 
 - `--num-target-tokens`: Number of tokens for token forcing (default: `20`)
 - `--num-refusal-tokens`: Number of tokens for refusal direction (default: `45`)
@@ -134,7 +137,7 @@ uv run attack/run_experiments.py --beta 0.5
 - `--verbose`: Increase logging verbosity
 - `--target-override`: Use a fixed target string for all prompts (`</think>\\nSure, here is`)
 
-See `uv run attack/run_experiments.py --help` for all options.
+See `uv run-m attack.experiments --help` for all options.
 
 ### Using as a module
 
@@ -152,7 +155,7 @@ See [attack/gcg.py](attack/gcg.py#L47) for available `GCGConfig` options.
 <br>
 
 ---
-If you use this code in your work, we would appreciate you using the following citation:
+If you use this code in your work, please cite us with the following:
 
 __update when we have proper bibtex!__
 ```
