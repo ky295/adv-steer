@@ -120,10 +120,10 @@ This GCG-style implementation is adapted from GraySwanAI's [nanoGCG](https://git
 To run a standard attack:
 
 ```
-uv run -m attack.run_experiments --beta 0.5
+uv run -m attack.experiments --beta 0.5
 ```
 
-**Configuration flags for `run_experiments.py`**
+**Configuration flags for `experiments.py`**
 - `--beta`: Refusal beta value (**required**), $\beta \in [0, 1]$ 
 - `--num-target-tokens`: Number of tokens for token forcing (default: `20`)
 - `--num-refusal-tokens`: Number of tokens for refusal direction (default: `45`)
@@ -137,7 +137,7 @@ uv run -m attack.run_experiments --beta 0.5
 - `--verbose`: Increase logging verbosity
 - `--target-override`: Use a fixed target string for all prompts (`</think>\\nSure, here is`)
 
-See `uv run-m attack.run_experiments --help` for all options.
+See `uv run-m attack.experiments --help` for all options.
 
 ### Using as a module
 
