@@ -419,6 +419,8 @@ attack/__pycache__/
 attack/results*
 attack/wandb/
 
+results*/
+wandb*/
 
 
 .ruff_cache/

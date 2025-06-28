@@ -55,8 +55,8 @@ BASE_SEED = 42
 
 REFUSAL_LAYER_IDX = 17
 
-RESULTS_DIR = "results/"
-INPUT_CSV = "../dataset/orthogonalized_outputs_cot150_2048.csv"
+RESULTS_DIR = "attack/results/"
+INPUT_CSV = "dataset/orthogonalized_outputs_cot150_2048.csv"
 
 # Override target string
 OVERRIDE_TARGET_STRING = "</think>\n\nSure"
