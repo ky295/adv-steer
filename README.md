@@ -1,7 +1,7 @@
 # Adversarial Manipulation of Reasoning Models using Internal Representations
 > Kureha Yamaguchi, Benjamin Etheridge, Andy Arditi
 
-Code for our paper at the ICML 2025 Workshop on Reliable and Responsible Foundation Models
+*Accepted as a poster at the ICML 2025 Workshop on Reliable and Responsible Foundation Models.*
 
 > [!CAUTION]
 > This repository contains datasets with offensive content and code to produce a jailbroken (unaligned) reasoning model.
@@ -20,11 +20,11 @@ git clone git@github.com:ky295/reasoning-manipulation.git
 cd reasoning-manipulation
 ```
 
-**Getting started**
+### Dependencies
 
-**UV**
+**uv**
 
-With [uv](https://docs.astral.sh/uv/), dependencies are managed automatically and no specific install step is needed (other than `uv` itself). We recommended this for faster installations and better reproducibility. 
+With uv, dependencies are managed automatically and no specific install step is needed (other than uv itself, instructions [here](https://docs.astral.sh/uv/getting-started/installation/)). We recommended this for faster dependency resolution and better reproducibility. 
 - Run a python file with `uv run {FILENAME.py}`
 - Use a module with `uv run -m {MODULE_PATH}`
 
@@ -48,7 +48,7 @@ pip install -e ".[dev]"
 
 ##  Dataset creation
 
-`utils/dataset_alpaca.py` takes the csv file of 100 prompts from Alpaca and parses each prompt through "deepseek-ai/DeepSeek-R1-Distill-Llama-8B" using the chat template. It stores the prompt, response pair in an output csv file.
+`utils/dataset_alpaca.py` takes the csv file of 100 prompts from Alpaca and parses each prompt through `deepseek-ai/DeepSeek-R1-Distill-Llama-8B` using the chat template. It stores the prompt, response pair in an output csv file.
 
 ```bash
 uv run -m utils.dataset_alpaca --input_csv dataset/alpaca_instructions_100.csv --output_csv dataset/alpaca_reasoning_output.csv
@@ -131,13 +131,13 @@ uv run -m attack.experiments --beta 0.5
 - `--num-steps`: Number of optimization steps (default: `150`)
 - `--num-gpus`: Number of GPUs to use (default: `4`)
 - `--runs-per-gpu`: Number of runs per GPU (default: `1`)
-- `--input-csv`: Input CSV file path, relative to `/attack` (default `../dataset/orthogonalized_outputs_cot150_2048.csv`)
-- `--results-dir`: Directory to save results, relative to `/attack` (default: `results/`)
+- `--input-csv`: Input CSV file path, relative to top level (default `dataset/orthogonalized_outputs_cot150_2048.csv`)
+- `--results-dir`: Directory to save results, relative to top level (default: `attack/results/`)
 - `--dry-run`: Print experiment plan without running anything
 - `--verbose`: Increase logging verbosity
-- `--target-override`: Use a fixed target string for all prompts (`</think>\\nSure, here is`)
+- `--target-override`: Use a fixed target string to try and skip CoT for all prompts (`</think>\\nSure, here is`)
 
-See `uv run-m attack.experiments --help` for all options.
+See `uv run -m attack.experiments --help` for all options.
 
 ### Using as a module
 
