@@ -1,4 +1,7 @@
 # Adversarial Manipulation of Reasoning Models using Internal Representations
+> Kureha Yamaguchi, Benjamin Etheridge, Andy Arditi
+
+Code for our paper at the ICML 2025 Workshop on Reliable and Responsible Foundation Models
 
 > [!CAUTION]
 > This repository contains datasets with offensive content and code to produce a jailbroken (unaligned) reasoning model.
@@ -152,7 +155,7 @@ See [attack/gcg.py](attack/gcg.py#L47) for available `GCGConfig` options.
 <br>
 
 ---
-If you use this code in your work, we would appreciate you using the following citation:
+If you use this code in your work, please cite us with the following:
 
 __update when we have proper bibtex!__
 ```
