@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# CUDA_VISIBLE_DEVICES=0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python -m probing.create_ortho_model
+# CUDA_VISIBLE_DEVICES=0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python -m probing.create_ortho_model --activations_dir 'activations/cot150/' --layer 17
 
 def parse_args():
     """Parse command line arguments."""
@@ -14,9 +14,9 @@ def parse_args():
         description="Process prompts through DeepSeek-R1-Distill-Llama-8B model"
     )
     parser.add_argument(
-        "--activations_dir",
+        '--activations_dir',
         type=str,
-        default="archive/cot150/",
+        default="activations/cot150/",
         help="Path to activations directory" 
     )
     parser.add_argument("--model_name", type=str, default="deepseek-ai/DeepSeek-R1-Distill-Llama-8B", help="Load the model")

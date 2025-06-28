@@ -70,10 +70,10 @@ The dataset
 
 ##  Activations
 
-Now that we have `dataset/cautious.csv` and `dataset/non_cautious.csv`, we can now run `probing/activations.py` in order to cache activations for a sweep of layers. This script takes the first 150 tokens (staying within the CoT) in the prompt-response example, computes activations at each token position, and then takes the average. This is repeated for each row in the dataset, for a sweep of layers.
+Now that we have `dataset/cautious.csv` and `dataset/non_cautious.csv`, we can now run `probing/activations.py` in order to cache activations for a sweep of layers. This script takes the first 150 tokens (staying within the CoT) in the prompt-response example, computes activations at each token position, and then takes the average. This is repeated for each row in the dataset, for a sweep of layers. For the flag `--type`, select `cot` for 150 CoT tokens, or `baseline` for 3 tokens at the end of prompt or `prompt` for the whole prompt.
 
 ```
-uv run python -m probing.activations --layers 15,19,23,27,31 --dataset_path dataset/cautious.csv --output_dir activations/
+uv run  python -m probing.activations --layers 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 --dataset_path dataset/non_cautious.csv --output_dir activations/cot150/ --type cot
 ```
 
 <div align="center">
@@ -89,10 +89,9 @@ In `probing/create_ortho_model.py`, we can calculate the caution direction using
 
 $$W_{\text{out}}' \leftarrow W_{\text{out}} - \widehat{r}\widehat{r}^{\mathsf{T}} W_{\text{out}}$$
 
-The orthogonalised model can be created uing:
-
+The orthogonalised model using acitvations at layer 17 from `activations/cot150_plus` can be created using:
 ```
-uv run python -m probing.create_ortho_model --activations_dir "activations/cot150_plus/" --layer 17 
+uv run python -m probing.create_ortho_model --activations_dir 'activations/cot150_plus/' --layer 17 
 ```
 
 After pushing the model to HF, you can then use the `probing/ortho_csv_generation.py` script to save a .csv file of the prompt, orthogonalised response pair using prompts from the evaluation dataset `dataset/cautious_eval.csv`. Here, replace 'kureha295/ortho_model' with your HF model.
