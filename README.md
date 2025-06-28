@@ -110,7 +110,7 @@ Using `probing/intervention_results.ipynb`, we can compare StrongREJECT fine-tun
   <img src="figures/covid_conspiracy.png" width="750"/>
 </div>
 
-Our 'toxified' orthogonalized model is available on HuggingFace (with gated access) at [https://hf.co/kureha295/ortho_model_2](https://hf.co/kureha295/ortho_model_2)
+Our 'toxified' orthogonalized model is available on HuggingFace (with gated access) at [https://hf.co/kureha295/cot150_plus](https://hf.co/kureha295/cot150_plus)
 
 
 ## Prompt-based Attacks
