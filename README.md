@@ -62,9 +62,11 @@ uv run python -m utils.dataset_strong_reject --output_csv dataset/strongreject_r
 
 We curate datasets of cautious (`dataset/cautious.csv`) and incautious (`dataset/non_cautious.csv`) generations using the StrongREJECT evaluator, which assigns scores on a continuous scale of 0 to 1, where a high score indicates a specific and convincing non-refusal response. The incautious and cautious datasets are comprised of prompt-response pairs from AdvBench (`dataset/advbench_reasoning_output.csv`) where the output scores >0.85 and <0.10, respectively.
 
-We also experiment with a larger dataset, which is composed of the standard dataset, augmented with 25 extra harmful AdvBench examples in the cautious dataset (for output scores <0.10), and 25 harmless Alpaca (`dataset/alpaca_reasoning_output.csv`) examples in the incautious dataset.
+We also experiment with a larger dataset, which is composed of the standard dataset, augmented with 25 extra harmful AdvBench examples in the cautious dataset (for output scores <0.10), and 25 harmless Alpaca (`dataset/alpaca_reasoning_output.csv`) examples in the incautious dataset. These larger cautious/ incautious datasets are in `dataset/standard_plus/cautious.csv` and `dataset/standard_plus/non_cautious.csv`. Results of experiments corresponding to these larger datasets are also in `dataset/standard_plus`.
 
 The evaluation dataset comprises of 116 unseen examples from the StrongREJECT dataset (`dataset/cautious_eval.csv`), where the outputs are all highly cautious and harmless. This evaluation dataset was curated by filtering for prompts where the base model outputs had a StrongREJECT score of <0.03, providing a more challenging benchmark.
+
+The dataset
 
 ##  Activations
 
@@ -87,7 +89,17 @@ In `probing/create_ortho_model.py`, we can calculate the caution direction using
 
 $$W_{\text{out}}' \leftarrow W_{\text{out}} - \widehat{r}\widehat{r}^{\mathsf{T}} W_{\text{out}}$$
 
-We can then use the `probing/ortho_csv_generation.py` script to save a .csv file of the prompt, orthogonalised response pair using prompts from `cautious.csv`.
+The orthogonalised model can be created uing:
+
+```
+uv run python -m probing.create_ortho_model --activations_dir "activations/cot150_plus/" --layer 17 
+```
+
+After pushing the model to HF, you can then use the `probing/ortho_csv_generation.py` script to save a .csv file of the prompt, orthogonalised response pair using prompts from the evaluation dataset `dataset/cautious_eval.csv`. Here, replace 'kureha295/ortho_model' with your HF model.
+
+```
+uv run python -m probing.ortho_csv_generation --model_name 'kureha295/ortho_model' --input_csv 'dataset/cautious_eval.csv' --output_csv 'dataset/orthogonalized_outputs_2048.csv' --max_new_tokens 2048
+```
 
 Using `probing/intervention_results.ipynb`, we can compare StrongREJECT fine-tuned evaluator scores before and after applying the weight orthogonalisation using the caution direction.
 
