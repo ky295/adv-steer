@@ -88,7 +88,7 @@ You can now determine which layer is best at separating the transformer residual
 
 For the layer determined using PCA, you can train a logistic regression classifier using `probing/logistic_regression.ipynb`.
 
-In `probing/create_ortho_model.py`, we can calculate the caution direction using the difference of means between the activations from the chosen layer. We can then implement the intervention by directly orthogonalizing the weight matrices that write to the residual stream with respect to the caution direction $\widehat{c}$:
+In `probing/create_ortho_model.py`, we can calculate the caution direction using the difference of means between the activations from the chosen layer. We can then implement the intervention by directly orthogonalising the weight matrices that write to the residual stream with respect to the caution direction $\widehat{c}$:
 
 $$W_{\text{out}}' \leftarrow W_{\text{out}} - \widehat{c}\widehat{c}^{\mathsf{T}} W_{\text{out}}$$
 
@@ -105,12 +105,12 @@ uv run -m probing.ortho_csv_generation --model_name 'kureha295/ortho_model' --in
 
 Using `probing/intervention_results.ipynb`, we can compare StrongREJECT fine-tuned evaluator scores before and after applying the weight orthogonalisation using the caution direction.
 
-**Example generations from standard verus orthogonalized model:**
+**Example generations from standard verus orthogonalised model:**
 <div align="center">
   <img src="figures/covid_conspiracy.png" width="750"/>
 </div>
 
-Our 'toxified' orthogonalized model is available on HuggingFace (with gated access) at [https://hf.co/kureha295/cot150_plus](https://hf.co/kureha295/cot150_plus)
+Our 'toxified' orthogonalised model is available on HuggingFace (with gated access) at [https://hf.co/kureha295/cot150_plus](https://hf.co/kureha295/cot150_plus)
 
 
 ## Prompt-based Attacks
