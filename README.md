@@ -88,6 +88,11 @@ You can now determine which layer is best at separating the transformer residual
 
 For the layer determined using PCA, you can train a logistic regression classifier using `probing/logistic_regression.ipynb`.
 
+
+<div align="center">
+  <img src="figures/heatmap_annotated_transparent2.png" width="780"/>
+</div>
+
 In `probing/create_ortho_model.py`, we can calculate the caution direction using the difference of means between the activations from the chosen layer. We can then implement the intervention by directly orthogonalising the weight matrices that write to the residual stream with respect to the caution direction $\widehat{c}$:
 
 $$W_{\text{out}}' \leftarrow W_{\text{out}} - \widehat{c}\widehat{c}^{\mathsf{T}} W_{\text{out}}$$
