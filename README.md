@@ -160,15 +160,16 @@ See [attack/gcg.py](attack/gcg.py#L47) for available `GCGConfig` options.
 <br>
 
 ---
-If you use this code in your work, please cite us with the following:
-
-__update when we have proper bibtex!__
+If you use this code in your work, please consider citing us with the following bibtex:
 ```
-@unpublished{
-    yamaguchi2025reasoning,
-    title={Adversarial Manipulation of Reasoning Models using Internal Representations},
-    author={Kureha Yamaguchi and Benjamin Etheridge and Andy Arditi},
-    year={2025},
+@misc{yamaguchi2025reasoning,
+      title={Adversarial Manipulation of Reasoning Models using Internal Representations}, 
+      author={Kureha Yamaguchi and Benjamin Etheridge and Andy Arditi},
+      year={2025},
+      eprint={2507.03167},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2507.03167}, 
 }
 ```
 
