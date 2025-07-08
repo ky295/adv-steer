@@ -1,6 +1,8 @@
 # Adversarial Manipulation of Reasoning Models using Internal Representations
 > Kureha Yamaguchi, Benjamin Etheridge, Andy Arditi
 
+**Paper: https://arxiv.org/abs/2507.03167**
+
 *Accepted as a poster at the ICML 2025 Workshop on Reliable and Responsible Foundation Models.*
 
 > [!CAUTION]
